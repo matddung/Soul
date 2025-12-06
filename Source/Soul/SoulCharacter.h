@@ -7,6 +7,8 @@
 
 class UInputAction;
 class UInputMappingContext;
+class USpringArmComponent;
+class UCameraComponent;
 
 UCLASS()
 class SOUL_API ASoulCharacter : public ACharacter
@@ -32,4 +34,10 @@ protected:
 
 	UPROPERTY(EditAnywhere, Category = "Input")
 	UInputMappingContext* DefaultMappingContext;
+
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Components", meta = (AllowPrivateAccess = "true"))
+	USpringArmComponent* CameraBoom;
+
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Components", meta = (AllowPrivateAccess = "true"))
+	UCameraComponent* FollowCamera;
 };

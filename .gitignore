@@ -9,3 +9,4 @@ Saved/
 Content/*
 
 !Content/Maps/
+!Content/Blueprints/*
