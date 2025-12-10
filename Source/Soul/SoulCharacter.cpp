@@ -24,7 +24,6 @@ ASoulCharacter::ASoulCharacter()
 	GetCharacterMovement()->bUseControllerDesiredRotation = true;
 	GetCharacterMovement()->RotationRate = FRotator(0.0f, 500.0f, 0.0f);
 
-	GetCharacterMovement()->MaxWalkSpeed = WalkSpeed;
 	GetCharacterMovement()->MinAnalogWalkSpeed = 20.f;
 	GetCharacterMovement()->BrakingDecelerationWalking = 2000.f;
 	GetCharacterMovement()->BrakingDecelerationFalling = 1500.0f;
@@ -37,6 +36,8 @@ ASoulCharacter::ASoulCharacter()
 	FollowCamera = CreateDefaultSubobject<UCameraComponent>(TEXT("FollowCamera"));
 	FollowCamera->SetupAttachment(CameraBoom, USpringArmComponent::SocketName);
 	FollowCamera->bUsePawnControlRotation = false;
+
+	UpdateMovementSpeed();
 }
 
 void ASoulCharacter::BeginPlay()
@@ -167,6 +168,41 @@ void ASoulCharacter::Look(const FInputActionValue& Value)
 	AddControllerPitchInput(LookAxisVector.Y);
 }
 
+void ASoulCharacter::UpdateMovementSpeed()
+{
+	if (GetCharacterMovement() == nullptr)
+	{
+		return;
+	}
+
+	float TargetSpeed = EmptyWalkSpeed;
+
+	if (bIsAiming && CurrentWeaponType == EWeaponType::Gun)
+	{
+		TargetSpeed = GunAimWalkSpeed;
+	}
+	else
+	{
+		switch (CurrentWeaponType)
+		{
+		case EWeaponType::Sword:
+			TargetSpeed = bIsSprinting ? SwordSprintSpeed : SwordWalkSpeed;
+			break;
+
+		case EWeaponType::Gun:
+			TargetSpeed = GunWalkSpeed;
+			break;
+
+		case EWeaponType::Empty:
+		default:
+			TargetSpeed = bIsSprinting ? EmptySprintSpeed : EmptyWalkSpeed;
+			break;
+		}
+	}
+
+	GetCharacterMovement()->MaxWalkSpeed = TargetSpeed;
+}
+
 void ASoulCharacter::SprintStart(const FInputActionValue& Value)
 {
 	if (GetController() == nullptr)
@@ -175,7 +211,7 @@ void ASoulCharacter::SprintStart(const FInputActionValue& Value)
 	}
 
 	bIsSprinting = true;
-	GetCharacterMovement()->MaxWalkSpeed = SprintSpeed;
+	UpdateMovementSpeed();
 }
 
 void ASoulCharacter::SprintStop(const FInputActionValue& Value)
@@ -186,7 +222,7 @@ void ASoulCharacter::SprintStop(const FInputActionValue& Value)
 	}
 
 	bIsSprinting = false;
-	GetCharacterMovement()->MaxWalkSpeed = WalkSpeed;
+	UpdateMovementSpeed();
 }
 
 void ASoulCharacter::SwapSword(const FInputActionValue& Value)
@@ -197,6 +233,7 @@ void ASoulCharacter::SwapSword(const FInputActionValue& Value)
 	}
 
 	CurrentWeaponType = EWeaponType::Sword;
+	UpdateMovementSpeed();
 }
 
 void ASoulCharacter::SwapGun(const FInputActionValue& Value)
@@ -207,6 +244,8 @@ void ASoulCharacter::SwapGun(const FInputActionValue& Value)
 	}
 
 	CurrentWeaponType = EWeaponType::Gun;
+	bIsSprinting = false;
+	UpdateMovementSpeed();
 }
 
 void ASoulCharacter::SwapEmpty(const FInputActionValue& Value)
@@ -217,6 +256,7 @@ void ASoulCharacter::SwapEmpty(const FInputActionValue& Value)
 	}
 
 	CurrentWeaponType = EWeaponType::Empty;
+	UpdateMovementSpeed();
 }
 
 void ASoulCharacter::GunAimStart(const FInputActionValue& Value)
@@ -235,6 +275,7 @@ void ASoulCharacter::GunAimStart(const FInputActionValue& Value)
 
 	bUseControllerRotationYaw = true;
 	GetCharacterMovement()->bOrientRotationToMovement = false;
+	UpdateMovementSpeed();
 
 	if (APlayerController* PC = Cast<APlayerController>(GetController()))
 	{
@@ -256,6 +297,7 @@ void ASoulCharacter::GunAimStop(const FInputActionValue& Value)
 
 	bUseControllerRotationYaw = false;
 	GetCharacterMovement()->bOrientRotationToMovement = true;
+	UpdateMovementSpeed();
 
 	if (APlayerController* PC = Cast<APlayerController>(GetController()))
 	{

@@ -54,6 +54,7 @@ protected:
 	void DoGunShot();
 	void OnGunCanReShot();
 	void OnGunShotEnd();
+	void UpdateMovementSpeed();
 
 	UFUNCTION()
 	void OnAttackMontageEnded(UAnimMontage* Montage, bool bInterrupted);
@@ -98,11 +99,23 @@ protected:
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Components", meta = (AllowPrivateAccess = "true"))
 	UCameraComponent* FollowCamera;
 
-	UPROPERTY(EditAnywhere, Category = "Movement")
-	float WalkSpeed = 300;
+	UPROPERTY(EditAnywhere, Category = "Movement|Empty")
+	float EmptyWalkSpeed = 400;
 
-	UPROPERTY(EditAnywhere, Category = "Movement")
-	float SprintSpeed = 600;
+	UPROPERTY(EditAnywhere, Category = "Movement|Empty")
+	float EmptySprintSpeed = 800;
+
+	UPROPERTY(EditAnywhere, Category = "Movement|Sword")
+	float SwordWalkSpeed = 200;
+
+	UPROPERTY(EditAnywhere, Category = "Movement|Sword")
+	float SwordSprintSpeed = 400;
+
+	UPROPERTY(EditAnywhere, Category = "Movement|Gun")
+	float GunWalkSpeed = 200;
+
+	UPROPERTY(EditAnywhere, Category = "Movement|Gun")
+	float GunAimWalkSpeed = 50;
 
 	UPROPERTY(EditAnywhere, Category = "Movement")
 	bool bIsSprinting = false;
