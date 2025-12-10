@@ -1,5 +1,6 @@
 #include "SoulCharacter.h"
 #include "SoulAnimInstance.h"
+#include "SoulPlayerController.h"
 
 #include "EnhancedInputComponent.h"
 #include "EnhancedInputSubsystems.h"
@@ -11,6 +12,8 @@
 
 ASoulCharacter::ASoulCharacter()
 {
+	PrimaryActorTick.bCanEverTick = true;
+
 	GetCapsuleComponent()->InitCapsuleSize(42.f, 96.0f);
 
 	bUseControllerRotationPitch = false;
@@ -28,7 +31,7 @@ ASoulCharacter::ASoulCharacter()
 
 	CameraBoom = CreateDefaultSubobject<USpringArmComponent>(TEXT("CameraBoom"));
 	CameraBoom->SetupAttachment(RootComponent);
-	CameraBoom->TargetArmLength = 400.0f;
+	CameraBoom->TargetArmLength = DefaultArmLength;
 	CameraBoom->bUsePawnControlRotation = true;
 
 	FollowCamera = CreateDefaultSubobject<UCameraComponent>(TEXT("FollowCamera"));
@@ -45,6 +48,17 @@ void ASoulCharacter::BeginPlay()
 		UEnhancedInputLocalPlayerSubsystem* Subsystem = ULocalPlayer::GetSubsystem<UEnhancedInputLocalPlayerSubsystem>(PC->GetLocalPlayer());
 
 		Subsystem->AddMappingContext(DefaultMappingContext, 0);
+	}
+
+	if (FollowCamera)
+	{
+		DefaultFOV = FollowCamera->FieldOfView;
+	}
+
+	if (CameraBoom)
+	{
+		DefaultArmLength = CameraBoom->TargetArmLength;
+		DefaultSocketOffset = CameraBoom->SocketOffset;
 	}
 }
 
@@ -70,6 +84,10 @@ void ASoulCharacter::PostInitializeComponents()
 		}
 	});
 
+	AnimInstance->OnGunShot.AddUObject(this, &ASoulCharacter::DoGunShot);
+	AnimInstance->OnGunCanReShot.AddUObject(this, &ASoulCharacter::OnGunCanReShot);
+	AnimInstance->OnGunShotEnd.AddUObject(this, &ASoulCharacter::OnGunShotEnd);
+
 	AnimInstance->OnAttackHitCheck.AddUObject(this, &ASoulCharacter::AttackCheck);
 }
 
@@ -86,6 +104,33 @@ void ASoulCharacter::SetupPlayerInputComponent(UInputComponent* PlayerInputCompo
 		EnhancedInputComponent->BindAction(SprintAction, ETriggerEvent::Completed, this, &ASoulCharacter::SprintStop);
 
 		EnhancedInputComponent->BindAction(AttackAction, ETriggerEvent::Started, this, &ASoulCharacter::Attack);
+
+		EnhancedInputComponent->BindAction(SwapSwordAction, ETriggerEvent::Started, this, &ASoulCharacter::SwapSword);
+		EnhancedInputComponent->BindAction(SwapGunAction, ETriggerEvent::Started, this, &ASoulCharacter::SwapGun);
+		EnhancedInputComponent->BindAction(SwapEmptyAction, ETriggerEvent::Started, this, &ASoulCharacter::SwapEmpty);
+		EnhancedInputComponent->BindAction(GunAimAction, ETriggerEvent::Started, this, &ASoulCharacter::GunAimStart);
+		EnhancedInputComponent->BindAction(GunAimAction, ETriggerEvent::Completed, this, &ASoulCharacter::GunAimStop);
+	}
+}
+
+void ASoulCharacter::Tick(float DeltaSeconds)
+{
+	Super::Tick(DeltaSeconds);
+
+	if (FollowCamera)
+	{
+		const float TargetFOV = bIsAiming ? AimFOV : DefaultFOV;
+		const float NewFOV = FMath::FInterpTo(FollowCamera->FieldOfView, TargetFOV, DeltaSeconds, FOVInterpSpeed);
+		FollowCamera->SetFieldOfView(NewFOV);
+	}
+
+	if (CameraBoom)
+	{
+		const float TargetArm = bIsAiming ? AimArmLength : DefaultArmLength;
+		CameraBoom->TargetArmLength = FMath::FInterpTo(CameraBoom->TargetArmLength, TargetArm, DeltaSeconds, CameraInterpSpeed);
+
+		const FVector TargetOffset = bIsAiming ? AimSocketOffset : DefaultSocketOffset;
+		CameraBoom->SocketOffset = FMath::VInterpTo(CameraBoom->SocketOffset, TargetOffset, DeltaSeconds, CameraInterpSpeed);
 	}
 }
 
@@ -107,8 +152,6 @@ void ASoulCharacter::Move(const FInputActionValue& Value)
 
 	AddMovementInput(ForwardDirection, MovementVector.Y);
 	AddMovementInput(RightDirection, MovementVector.X);
-
-	UE_LOG(LogTemp, Warning, TEXT("Move Called: %s"), *Value.ToString());
 }
 
 void ASoulCharacter::Look(const FInputActionValue& Value)
@@ -146,9 +189,108 @@ void ASoulCharacter::SprintStop(const FInputActionValue& Value)
 	GetCharacterMovement()->MaxWalkSpeed = WalkSpeed;
 }
 
+void ASoulCharacter::SwapSword(const FInputActionValue& Value)
+{
+	if (!Value.Get<bool>())
+	{
+		return;
+	}
+
+	CurrentWeaponType = EWeaponType::Sword;
+}
+
+void ASoulCharacter::SwapGun(const FInputActionValue& Value)
+{
+	if (!Value.Get<bool>())
+	{
+		return;
+	}
+
+	CurrentWeaponType = EWeaponType::Gun;
+}
+
+void ASoulCharacter::SwapEmpty(const FInputActionValue& Value)
+{
+	if (!Value.Get<bool>())
+	{
+		return;
+	}
+
+	CurrentWeaponType = EWeaponType::Empty;
+}
+
+void ASoulCharacter::GunAimStart(const FInputActionValue& Value)
+{
+	if (!Value.Get<bool>())
+	{
+		return;
+	}
+
+	if (CurrentWeaponType != EWeaponType::Gun)
+	{
+		return;
+	}
+
+	bIsAiming = true;
+
+	bUseControllerRotationYaw = true;
+	GetCharacterMovement()->bOrientRotationToMovement = false;
+
+	if (APlayerController* PC = Cast<APlayerController>(GetController()))
+	{
+		if (auto SoulPC = Cast<ASoulPlayerController>(PC))
+		{
+			SoulPC->ShowCrosshair(true);
+		}
+	}
+}
+
+void ASoulCharacter::GunAimStop(const FInputActionValue& Value)
+{
+	if (CurrentWeaponType != EWeaponType::Gun)
+	{
+		return;
+	}
+
+	bIsAiming = false;
+
+	bUseControllerRotationYaw = false;
+	GetCharacterMovement()->bOrientRotationToMovement = true;
+
+	if (APlayerController* PC = Cast<APlayerController>(GetController()))
+	{
+		if (auto SoulPC = Cast<ASoulPlayerController>(PC))
+		{
+			SoulPC->ShowCrosshair(false);
+		}
+	}
+}
+
 void ASoulCharacter::Attack(const FInputActionValue& Value)
 {
-	if (IsAttacking)
+	if (!Value.Get<bool>())
+	{
+		return;
+	}
+
+	switch (CurrentWeaponType)
+	{
+	case EWeaponType::Sword:
+		HandleSwordAttack();
+		break;
+
+	case EWeaponType::Gun:
+		HandleGunAttack();
+		break;
+
+	default:
+		break;
+	}
+}
+
+void ASoulCharacter::HandleSwordAttack()
+{
+	if (bIsAttacking)
 	{
 		if (!FMath::IsWithinInclusive<int32>(CurrentCombo, 1, MaxCombo))
 		{
@@ -166,15 +308,61 @@ void ASoulCharacter::Attack(const FInputActionValue& Value)
 			return;
 		}
 		AttackStartComboState();
-		AnimInstance->PlayAttackMontage();
+		AnimInstance->PlaySwordAttackMontage();
 		AnimInstance->JumpToAttackMontageSection(CurrentCombo);
-		IsAttacking = true;
+		bIsAttacking = true;
+	}
+}
+
+void ASoulCharacter::HandleGunAttack()
+{
+	if (!bCanGunFire)
+	{
+		return;
+	}
+
+	if (!AnimInstance)
+	{
+		return;
+	}
+
+	AnimInstance->PlayGunAttackMontage();
+
+	bCanGunFire = false;
+}
+
+void ASoulCharacter::DoGunShot()
+{
+	UE_LOG(LogTemp, Warning, TEXT("Gun Shot!"));
+
+	if (APlayerController* PC = Cast<APlayerController>(GetController()))
+	{
+		if (auto SoulPC = Cast<ASoulPlayerController>(PC))
+		{
+			SoulPC->OnCrosshairShot();
+		}
+	}
+}
+
+void ASoulCharacter::OnGunCanReShot()
+{
+	bCanGunFire = true;
+}
+
+void ASoulCharacter::OnGunShotEnd()
+{
+	if (APlayerController* PC = Cast<APlayerController>(GetController()))
+	{
+		if (auto SoulPC = Cast<ASoulPlayerController>(PC))
+		{
+			SoulPC->OnCrosshairReset();
+		}
 	}
 }
 
 void ASoulCharacter::OnAttackMontageEnded(UAnimMontage* Montage, bool bInterrupted)
 {
-	if (!IsAttacking)
+	if (!bIsAttacking)
 	{
 		return;
 	}
@@ -182,7 +370,7 @@ void ASoulCharacter::OnAttackMontageEnded(UAnimMontage* Montage, bool bInterrupt
 	{
 		return;
 	}
-	IsAttacking = false;
+	bIsAttacking = false;
 	AttackEndComboState();
 
 	OnAttackEnd.Broadcast();
@@ -214,17 +402,17 @@ void ASoulCharacter::AttackCheck()
 	bool bResult = GetWorld()->SweepSingleByChannel(
 		HitResult,
 		GetActorLocation(),
-		GetActorLocation() + GetActorForwardVector() * AttackRange,
+		GetActorLocation() + GetActorForwardVector() * SwordAttackRange,
 		FQuat::Identity,
 		ECollisionChannel::ECC_GameTraceChannel2,
-		FCollisionShape::MakeSphere(AttackRadius),
+		FCollisionShape::MakeSphere(SwordAttackRadius),
 		Params);
 
 #if ENABLE_DRAW_DEBUG
 
-	FVector TraceVec = GetActorForwardVector() * AttackRange;
+	FVector TraceVec = GetActorForwardVector() * SwordAttackRange;
 	FVector Center = GetActorLocation() + TraceVec * 0.5f;
-	float HalfHeight = AttackRange * 0.5f + AttackRadius;
+	float HalfHeight = SwordAttackRange * 0.5f + SwordAttackRadius;
 	FQuat CapsuleRot = FRotationMatrix::MakeFromZ(TraceVec).ToQuat();
 	FColor DrawColor = bResult ? FColor::Green : FColor::Red;
 	float DebugLifeTime = 5.0f;
@@ -232,7 +420,7 @@ void ASoulCharacter::AttackCheck()
 	DrawDebugCapsule(GetWorld(),
 		Center,
 		HalfHeight,
-		AttackRadius,
+		SwordAttackRadius,
 		CapsuleRot,
 		DrawColor,
 		false,
