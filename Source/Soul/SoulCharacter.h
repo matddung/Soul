@@ -49,6 +49,7 @@ protected:
 	void SwapEmpty(const FInputActionValue& Value);
 	void GunAimStart(const FInputActionValue& Value);
 	void GunAimStop(const FInputActionValue& Value);
+	void StopAiming();
 	void HandleSwordAttack();
 	void HandleGunAttack();
 	void DoGunShot();

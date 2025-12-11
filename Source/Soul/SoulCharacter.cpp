@@ -118,6 +118,11 @@ void ASoulCharacter::Tick(float DeltaSeconds)
 {
 	Super::Tick(DeltaSeconds);
 
+	if (bIsAiming && GetCharacterMovement() && !GetCharacterMovement()->IsMovingOnGround())
+	{
+		StopAiming();
+	}
+
 	if (FollowCamera)
 	{
 		const float TargetFOV = bIsAiming ? AimFOV : DefaultFOV;
@@ -211,6 +216,7 @@ void ASoulCharacter::SprintStart(const FInputActionValue& Value)
 	}
 
 	bIsSprinting = true;
+	bIsAiming = false;
 	UpdateMovementSpeed();
 }
 
@@ -232,7 +238,10 @@ void ASoulCharacter::SwapSword(const FInputActionValue& Value)
 		return;
 	}
 
+	StopAiming();
+
 	CurrentWeaponType = EWeaponType::Sword;
+	bIsAiming = false;
 	UpdateMovementSpeed();
 }
 
@@ -254,6 +263,8 @@ void ASoulCharacter::SwapEmpty(const FInputActionValue& Value)
 	{
 		return;
 	}
+
+	StopAiming();
 
 	CurrentWeaponType = EWeaponType::Empty;
 	UpdateMovementSpeed();
@@ -288,7 +299,12 @@ void ASoulCharacter::GunAimStart(const FInputActionValue& Value)
 
 void ASoulCharacter::GunAimStop(const FInputActionValue& Value)
 {
-	if (CurrentWeaponType != EWeaponType::Gun)
+	StopAiming();
+}
+
+void ASoulCharacter::StopAiming()
+{
+	if (!bIsAiming)
 	{
 		return;
 	}
@@ -359,6 +375,11 @@ void ASoulCharacter::HandleSwordAttack()
 void ASoulCharacter::HandleGunAttack()
 {
 	if (!bCanGunFire)
+	{
+		return;
+	}
+
+	if (!bIsAiming)
 	{
 		return;
 	}
