@@ -12,6 +12,9 @@ DECLARE_MULTICAST_DELEGATE(FOnAttackHitCheckDelegate);
 DECLARE_MULTICAST_DELEGATE(FOnGunShotDelegate);
 DECLARE_MULTICAST_DELEGATE(FOnGunCanReShotDelegate);
 DECLARE_MULTICAST_DELEGATE(FOnGunShotEndDelegate);
+DECLARE_MULTICAST_DELEGATE(FOnDodgeIFrameOnDelegate);
+DECLARE_MULTICAST_DELEGATE(FOnDodgeIFrameOffDelegate);
+DECLARE_MULTICAST_DELEGATE(FOnDodgeEndDelegate);
 
 UENUM(BlueprintType)
 enum class ECharacterAnimState : uint8
@@ -45,6 +48,8 @@ public:
 	void PlayGunAttackMontage();
 	void JumpToAttackMontageSection(int32 NewSection);
 
+	void PlayDodgeMontage();
+
 protected:
 	UFUNCTION()
 	void AnimNotify_AttackHitCheck();
@@ -63,12 +68,24 @@ protected:
 	UFUNCTION()
 	void AnimNotify_GunShotEnd();
 
+	UFUNCTION()
+	void AnimNotify_DodgeIFrameOn();
+
+	UFUNCTION()
+	void AnimNotify_DodgeIFrameOff();
+
+	UFUNCTION()
+	void AnimNotify_DodgeEnd();
+
 public:
 	FOnNextAttackCheckDelegate OnNextAttackCheck;
 	FOnAttackHitCheckDelegate OnAttackHitCheck;
 	FOnGunShotDelegate OnGunShot;
 	FOnGunCanReShotDelegate OnGunCanReShot;
 	FOnGunShotEndDelegate  OnGunShotEnd;
+	FOnDodgeIFrameOnDelegate  OnDodgeIFrameOn;
+	FOnDodgeIFrameOffDelegate OnDodgeIFrameOff;
+	FOnDodgeEndDelegate OnDodgeEnd;
 
 protected:
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = Attack, Meta = (AllowPrivateAccess = true))
@@ -76,6 +93,9 @@ protected:
 
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = Attack, Meta = (AllowPrivateAccess = true))
 	UAnimMontage* GunFireMontage;
+
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = Attack, Meta = (AllowPrivateAccess = true))
+	UAnimMontage* DodgeMontage;
 
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = Pawn, Meta = (AllowPrivateAccess = true))
 	bool IsInAir = false;

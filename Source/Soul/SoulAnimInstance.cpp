@@ -122,3 +122,23 @@ void USoulAnimInstance::AnimNotify_GunShotEnd()
 {
 	OnGunShotEnd.Broadcast();
 }
+
+void USoulAnimInstance::PlayDodgeMontage()
+{
+	Montage_Play(DodgeMontage, 1);
+}
+
+void USoulAnimInstance::AnimNotify_DodgeIFrameOn()
+{
+	OnDodgeIFrameOn.Broadcast();
+}
+
+void USoulAnimInstance::AnimNotify_DodgeIFrameOff()
+{
+	OnDodgeIFrameOff.Broadcast();
+}
+
+void USoulAnimInstance::AnimNotify_DodgeEnd()
+{
+	OnDodgeEnd.Broadcast();
+}

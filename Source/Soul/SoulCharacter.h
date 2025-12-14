@@ -64,6 +64,12 @@ protected:
 	void AttackEndComboState();
 	void AttackCheck();
 
+	void Dodge(const FInputActionValue& Value);
+	void StartDodgeInvincible();
+	void EndDodgeInvincible();
+	void OnDodgeFinished();
+	void TickDodgeMove();
+
 protected:
 	FOnAttackEndDelegate OnAttackEnd;
 
@@ -90,6 +96,9 @@ protected:
 
 	UPROPERTY(EditAnywhere, Category = "Input")
 	UInputAction* GunAimAction;
+
+	UPROPERTY(EditAnywhere, Category = "Input")
+	UInputAction* SwordDodgeAction;
 
 	UPROPERTY(EditAnywhere, Category = "Input")
 	UInputMappingContext* DefaultMappingContext;
@@ -139,12 +148,6 @@ protected:
 	UPROPERTY(VisibleInstanceOnly, Category = "Weapon")
 	int32 MaxCombo = 4;
 
-	UPROPERTY(VisibleInstanceOnly, Category = "Weapon")
-	float SwordAttackRange = 200;
-
-	UPROPERTY(VisibleInstanceOnly, Category = "Weapon")
-	float SwordAttackRadius = 50;
-
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Weapon")
 	EWeaponType CurrentWeaponType = EWeaponType::Empty;
 
@@ -177,4 +180,28 @@ protected:
 
 	UPROPERTY(EditAnywhere, Category = "Camera")
 	float CameraInterpSpeed = 10.f;
+
+	UPROPERTY(VisibleInstanceOnly, Category = "Weapon")
+	float SwordAttackRange = 200;
+
+	UPROPERTY(VisibleInstanceOnly, Category = "Weapon")
+	float SwordAttackRadius = 50;
+
+	UPROPERTY(EditAnywhere, Category = "Weapon|Sword")
+	float SwordDamage = 20;
+
+	UPROPERTY(EditAnywhere, Category = "Weapon|Gun")
+	float GunDamage = 15;
+
+	UPROPERTY(EditAnywhere, Category = "Weapon|Gun")
+	float GunRange = 2000;
+
+	UPROPERTY(EditAnywhere, Category = "Movement")
+	bool bIsDodging = false;
+
+	UPROPERTY(EditAnywhere, Category = "Movement")
+	float DodgeStrength = 400;
+
+	UPROPERTY(EditAnywhere, Category = "Movement")
+	bool bDodgeInvincible = false;
 };

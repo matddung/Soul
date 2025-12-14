@@ -9,6 +9,7 @@
 #include "GameFramework/CharacterMovementComponent.h"
 #include "GameFramework/SpringArmComponent.h"
 #include "GameFramework/Controller.h"
+#include "Kismet/GameplayStatics.h"
 
 ASoulCharacter::ASoulCharacter()
 {
@@ -90,6 +91,10 @@ void ASoulCharacter::PostInitializeComponents()
 	AnimInstance->OnGunShotEnd.AddUObject(this, &ASoulCharacter::OnGunShotEnd);
 
 	AnimInstance->OnAttackHitCheck.AddUObject(this, &ASoulCharacter::AttackCheck);
+
+	AnimInstance->OnDodgeIFrameOn.AddUObject(this, &ASoulCharacter::StartDodgeInvincible);
+	AnimInstance->OnDodgeIFrameOff.AddUObject(this, &ASoulCharacter::EndDodgeInvincible);
+	AnimInstance->OnDodgeEnd.AddUObject(this, &ASoulCharacter::OnDodgeFinished);
 }
 
 void ASoulCharacter::SetupPlayerInputComponent(UInputComponent* PlayerInputComponent)
@@ -111,6 +116,8 @@ void ASoulCharacter::SetupPlayerInputComponent(UInputComponent* PlayerInputCompo
 		EnhancedInputComponent->BindAction(SwapEmptyAction, ETriggerEvent::Started, this, &ASoulCharacter::SwapEmpty);
 		EnhancedInputComponent->BindAction(GunAimAction, ETriggerEvent::Started, this, &ASoulCharacter::GunAimStart);
 		EnhancedInputComponent->BindAction(GunAimAction, ETriggerEvent::Completed, this, &ASoulCharacter::GunAimStop);
+		
+		EnhancedInputComponent->BindAction(SwordDodgeAction, ETriggerEvent::Started, this, &ASoulCharacter::Dodge);
 	}
 }
 
@@ -396,7 +403,34 @@ void ASoulCharacter::HandleGunAttack()
 
 void ASoulCharacter::DoGunShot()
 {
-	UE_LOG(LogTemp, Warning, TEXT("Gun Shot!"));
+	if (!FollowCamera)
+	{
+		return;
+	}
+
+	const FVector Start = FollowCamera->GetComponentLocation();
+	const FVector Direction = FollowCamera->GetForwardVector();
+	const FVector End = Start + Direction * GunRange;
+
+	FHitResult HitResult;
+	FCollisionQueryParams Params(NAME_None, false, this);
+
+	const bool bHit = GetWorld()->LineTraceSingleByChannel(HitResult, Start, End, ECollisionChannel::ECC_Visibility, Params);
+
+#if ENABLE_DRAW_DEBUG
+	const FColor TraceColor = bHit ? FColor::Green : FColor::Red;
+	DrawDebugLine(GetWorld(), Start, End, TraceColor, false, 1.0f, 0, 1.0f);
+#endif
+
+	if (bHit)
+	{
+		if (AActor* HitActor = HitResult.GetActor())
+		{
+			UGameplayStatics::ApplyPointDamage(HitActor, GunDamage, Direction, HitResult, GetController(), this, nullptr);
+
+			UE_LOG(LogTemp, Warning, TEXT("Gun hit actor: %s"), *HitActor->GetName());
+		}
+	}
 
 	if (APlayerController* PC = Cast<APlayerController>(GetController()))
 	{
@@ -496,7 +530,78 @@ void ASoulCharacter::AttackCheck()
 		AActor* HitActor = HitResult.GetActor();
 		if (HitActor)
 		{
+			UGameplayStatics::ApplyPointDamage(HitActor, SwordDamage, GetActorForwardVector(), HitResult, GetController(), this, nullptr);
 			UE_LOG(LogTemp, Warning, TEXT("Hit Actor Name : %s"), *HitActor->GetName());
 		}
 	}
+}
+
+void ASoulCharacter::Dodge(const FInputActionValue& Value)
+{
+	if (!Value.Get<bool>())
+	{
+		return;
+	}
+
+	if (CurrentWeaponType == EWeaponType::Gun)
+	{
+		return;
+	}
+
+	if (bIsDodging)
+	{
+		return;
+	}
+
+	if (bIsAttacking)
+	{
+		return;
+	}
+
+	bIsDodging = true;
+
+	UCharacterMovementComponent* MoveComp = GetCharacterMovement();
+	MoveComp->bOrientRotationToMovement = false;
+	MoveComp->StopMovementImmediately();
+
+	// 1) 입력 방향 가져오기
+	FVector DodgeDir = MoveComp->GetLastInputVector();
+	DodgeDir.Z = 0.f;
+	DodgeDir = DodgeDir.GetSafeNormal();
+
+	// 입력이 없으면 현재 바라보는 방향으로(혹은 현재 이동 속도 방향으로) fallback
+	if (DodgeDir.IsNearlyZero())
+	{
+		DodgeDir = GetActorForwardVector();
+		DodgeDir.Z = 0.f;
+		DodgeDir.Normalize();
+	}
+
+	// 2) 캐릭터를 그 방향으로 회전(선택)
+	SetActorRotation(DodgeDir.Rotation());
+
+	// 3) 실제로 밀기 (아래 2번 방식 중 하나 선택)
+	LaunchCharacter(DodgeDir * DodgeStrength, true, true);
+
+	if (AnimInstance)
+	{
+		AnimInstance->PlayDodgeMontage();
+	}
+}
+
+void ASoulCharacter::OnDodgeFinished()
+{
+	bIsDodging = false;
+
+	GetCharacterMovement()->bOrientRotationToMovement = true;
+}
+
+void ASoulCharacter::StartDodgeInvincible()
+{
+	bDodgeInvincible = true;
+}
+
+void ASoulCharacter::EndDodgeInvincible()
+{
+	bDodgeInvincible = false;
 }
