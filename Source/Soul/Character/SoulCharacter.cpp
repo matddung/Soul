@@ -1,6 +1,7 @@
 #include "SoulCharacter.h"
 #include "SoulAnimInstance.h"
-#include "SoulPlayerController.h"
+#include "../Game/SoulPlayerController.h"
+#include "SoulCharacterStatComponent.h"
 
 #include "EnhancedInputComponent.h"
 #include "EnhancedInputSubsystems.h"
@@ -10,6 +11,7 @@
 #include "GameFramework/SpringArmComponent.h"
 #include "GameFramework/Controller.h"
 #include "Kismet/GameplayStatics.h"
+#include "Engine/Engine.h"
 
 ASoulCharacter::ASoulCharacter()
 {
@@ -39,6 +41,8 @@ ASoulCharacter::ASoulCharacter()
 	FollowCamera->bUsePawnControlRotation = false;
 
 	UpdateMovementSpeed();
+
+	StatComp = CreateDefaultSubobject<USoulCharacterStatComponent>(TEXT("StatComponent"));
 }
 
 void ASoulCharacter::BeginPlay()
@@ -564,12 +568,10 @@ void ASoulCharacter::Dodge(const FInputActionValue& Value)
 	MoveComp->bOrientRotationToMovement = false;
 	MoveComp->StopMovementImmediately();
 
-	// 1) 입력 방향 가져오기
 	FVector DodgeDir = MoveComp->GetLastInputVector();
 	DodgeDir.Z = 0.f;
 	DodgeDir = DodgeDir.GetSafeNormal();
 
-	// 입력이 없으면 현재 바라보는 방향으로(혹은 현재 이동 속도 방향으로) fallback
 	if (DodgeDir.IsNearlyZero())
 	{
 		DodgeDir = GetActorForwardVector();
@@ -577,10 +579,8 @@ void ASoulCharacter::Dodge(const FInputActionValue& Value)
 		DodgeDir.Normalize();
 	}
 
-	// 2) 캐릭터를 그 방향으로 회전(선택)
 	SetActorRotation(DodgeDir.Rotation());
 
-	// 3) 실제로 밀기 (아래 2번 방식 중 하나 선택)
 	LaunchCharacter(DodgeDir * DodgeStrength, true, true);
 
 	if (AnimInstance)

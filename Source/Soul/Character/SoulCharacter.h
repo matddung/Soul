@@ -9,6 +9,7 @@ class UInputAction;
 class UInputMappingContext;
 class USpringArmComponent;
 class UCameraComponent;
+class USoulCharacterStatComponent;
 
 DECLARE_MULTICAST_DELEGATE(FOnAttackEndDelegate);
 
@@ -204,4 +205,7 @@ protected:
 
 	UPROPERTY(EditAnywhere, Category = "Movement")
 	bool bDodgeInvincible = false;
+
+	UPROPERTY(EditAnywhere, Category = "Components")
+	TObjectPtr<USoulCharacterStatComponent> StatComp;
 };
