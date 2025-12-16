@@ -22,7 +22,8 @@ enum class ECharacterAnimState : uint8
 	Idle,
 	Walking,
 	Sprinting,
-	Attacking
+	Attacking,
+	Dead
 };
 
 class ASoulCharacter;
@@ -49,6 +50,8 @@ public:
 	void JumpToAttackMontageSection(int32 NewSection);
 
 	void PlayDodgeMontage();
+
+	void PlayHitReactMontage();
 
 protected:
 	UFUNCTION()
@@ -97,6 +100,9 @@ protected:
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = Attack, Meta = (AllowPrivateAccess = true))
 	UAnimMontage* DodgeMontage;
 
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = Attack, Meta = (AllowPrivateAccess = true))
+	UAnimMontage* HitReactMontage;
+
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = Pawn, Meta = (AllowPrivateAccess = true))
 	bool IsInAir = false;
 
@@ -109,6 +115,9 @@ protected:
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = Pawn, Meta = (AllowPrivateAccess = true))
 	EWeaponType CurrentWeaponType = EWeaponType::Empty;
 
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = Pawn, Meta = (AllowPrivateAccess = true))
+	bool bIsDead = false;
+
 	TWeakObjectPtr<class ASoulCharacter> CachedCharacter;
 
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Weapon")
@@ -116,4 +125,7 @@ protected:
 
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Weapon")
 	float AimPitch = 0;
+
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = Pawn, Meta = (AllowPrivateAccess = true))
+	bool bIsHit = false;
 };

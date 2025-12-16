@@ -71,6 +71,42 @@ void USoulCharacterStatComponent::AddSouls(int32 Amount)
 	Souls += FMath::Max(0, Amount);
 }
 
+bool USoulCharacterStatComponent::ApplyDamage(float DamageAmount)
+{
+	if (DamageAmount <= 0.f)
+	{
+		return false;
+	}
+
+	if (IsDead())
+	{
+		return false;
+	}
+
+	const float OldHP = HP;
+
+	HP = FMath::Clamp(HP - DamageAmount, 0.f, MaxHP);
+
+	if (HP <= 0.f && OldHP > 0.f)
+	{
+		OnDead.Broadcast();
+	}
+
+	return !FMath::IsNearlyEqual(OldHP, HP);
+}
+
+bool USoulCharacterStatComponent::IsDead() const
+{
+	return HP <= 0.f;
+}
+
+void USoulCharacterStatComponent::ResetCurrentToMax()
+{
+	RecalculateDerivedStats(false);
+	HP = MaxHP;
+	Stamina = MaxStamina;
+}
+
 int32 USoulCharacterStatComponent::GetStatRef(ECharacterStatType StatType) const
 {
 	switch (StatType)

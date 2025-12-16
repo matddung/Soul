@@ -2,6 +2,7 @@
 #include "SoulAnimInstance.h"
 #include "../Game/SoulPlayerController.h"
 #include "SoulCharacterStatComponent.h"
+#include "../UI/FloatingDamageActor.h"
 
 #include "EnhancedInputComponent.h"
 #include "EnhancedInputSubsystems.h"
@@ -99,6 +100,11 @@ void ASoulCharacter::PostInitializeComponents()
 	AnimInstance->OnDodgeIFrameOn.AddUObject(this, &ASoulCharacter::StartDodgeInvincible);
 	AnimInstance->OnDodgeIFrameOff.AddUObject(this, &ASoulCharacter::EndDodgeInvincible);
 	AnimInstance->OnDodgeEnd.AddUObject(this, &ASoulCharacter::OnDodgeFinished);
+	
+	if (StatComp)
+	{
+		StatComp->OnDead.AddDynamic(this, &ASoulCharacter::HandleDead);
+	}
 }
 
 void ASoulCharacter::SetupPlayerInputComponent(UInputComponent* PlayerInputComponent)
@@ -148,6 +154,46 @@ void ASoulCharacter::Tick(float DeltaSeconds)
 
 		const FVector TargetOffset = bIsAiming ? AimSocketOffset : DefaultSocketOffset;
 		CameraBoom->SocketOffset = FMath::VInterpTo(CameraBoom->SocketOffset, TargetOffset, DeltaSeconds, CameraInterpSpeed);
+	}
+}
+
+float ASoulCharacter::TakeDamage(float DamageAmount, FDamageEvent const& DamageEvent, AController* EventInstigator, AActor* DamageCauser)
+{
+	if (bDodgeInvincible)
+	{
+		return 0;
+	}
+
+	const float ActualDamage = Super::TakeDamage(DamageAmount, DamageEvent, EventInstigator, DamageCauser);
+	const float FinalDamage = (ActualDamage > 0.f) ? ActualDamage : DamageAmount;
+
+	float AppliedDamage = 0.f;
+
+	if (StatComp)
+	{
+		if (FinalDamage > 0.f && StatComp->ApplyDamage(FinalDamage))
+		{
+			OnHitDamage();
+			AppliedDamage = FinalDamage;
+		}
+
+		UE_LOG(LogTemp, Log, TEXT("TakeDamage | Damage: %.2f | HP: %.2f / %.2f"), FinalDamage, StatComp->HP, StatComp->MaxHP);
+	}
+	else
+	{
+		UE_LOG(LogTemp, Warning, TEXT("StatComp missing on %s"), *GetName());
+	}
+
+	return AppliedDamage;
+}
+
+void ASoulCharacter::Reset()
+{
+	Super::Reset();
+
+	if (StatComp)
+	{
+		StatComp->ResetCurrentToMax();
 	}
 }
 
@@ -418,8 +464,10 @@ void ASoulCharacter::DoGunShot()
 
 	FHitResult HitResult;
 	FCollisionQueryParams Params(NAME_None, false, this);
-
-	const bool bHit = GetWorld()->LineTraceSingleByChannel(HitResult, Start, End, ECollisionChannel::ECC_Visibility, Params);
+	FCollisionObjectQueryParams ObjectParams;
+	ObjectParams.AddObjectTypesToQuery(ECC_Pawn);
+	
+	const bool bHit = GetWorld()->LineTraceSingleByObjectType(HitResult, Start, End, ObjectParams, Params);
 
 #if ENABLE_DRAW_DEBUG
 	const FColor TraceColor = bHit ? FColor::Green : FColor::Red;
@@ -430,9 +478,12 @@ void ASoulCharacter::DoGunShot()
 	{
 		if (AActor* HitActor = HitResult.GetActor())
 		{
-			UGameplayStatics::ApplyPointDamage(HitActor, GunDamage, Direction, HitResult, GetController(), this, nullptr);
+			if (HitActor->IsA<ACharacter>())
+			{
+				UGameplayStatics::ApplyPointDamage(HitActor, GunDamage, Direction, HitResult, GetController(), this, nullptr);
 
-			UE_LOG(LogTemp, Warning, TEXT("Gun hit actor: %s"), *HitActor->GetName());
+				UE_LOG(LogTemp, Warning, TEXT("Gun hit actor: %s"), *HitActor->GetName());
+			}
 		}
 	}
 
@@ -604,4 +655,53 @@ void ASoulCharacter::StartDodgeInvincible()
 void ASoulCharacter::EndDodgeInvincible()
 {
 	bDodgeInvincible = false;
+}
+
+void ASoulCharacter::HandleDead()
+{
+	if (bIsDead) return;
+	bIsDead = true;
+
+	GetCharacterMovement()->DisableMovement();
+
+	bIsAttacking = false;
+	bIsSprinting = false;
+	bIsAiming = false;
+	UpdateMovementSpeed();
+
+	SetActorEnableCollision(false);
+}
+
+void ASoulCharacter::OnHitDamage()
+{
+	if (bIsDead)
+	{
+		return;
+	}
+
+	if (AnimInstance)
+	{
+		AnimInstance->PlayHitReactMontage();
+	}
+
+	bIsHit = true;
+
+	GetWorldTimerManager().SetTimer(HitRecoveryTimer, [this]() {
+		bIsHit = false;
+		}, 0.3f, false);
+}
+
+void ASoulCharacter::SpawnDamageText(AActor* DamagedActor, float Damage)
+{
+	if (!DamageTextActorClass || !DamagedActor) return;
+
+	FVector TargetLocation = DamagedActor->GetActorLocation() + FVector(0.f, 0.f, 100.f);
+	FActorSpawnParameters Params;
+	Params.SpawnCollisionHandlingOverride = ESpawnActorCollisionHandlingMethod::AlwaysSpawn;
+
+	AFloatingDamageActor* DamageText = GetWorld()->SpawnActor<AFloatingDamageActor>(DamageTextActorClass, TargetLocation, FRotator::ZeroRotator, Params);
+	if (DamageText)
+	{
+		DamageText->SetDamage(Damage);
+	}
 }

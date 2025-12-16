@@ -4,6 +4,8 @@
 #include "Components/ActorComponent.h"
 #include "SoulCharacterStatComponent.generated.h"
 
+DECLARE_DYNAMIC_MULTICAST_DELEGATE(FOnDead);
+
 UENUM(BlueprintType)
 enum class ECharacterStatType : uint8
 {
@@ -35,6 +37,15 @@ public:
 
 	UFUNCTION()
 	void AddSouls(int32 Amount);
+
+	UFUNCTION()
+	bool ApplyDamage(float DamageAmount);
+
+	UFUNCTION()
+	bool IsDead() const;
+
+	UFUNCTION()
+	void ResetCurrentToMax();
 
 protected:
 	virtual void BeginPlay() override;
@@ -99,4 +110,7 @@ public:
 
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Stats")
 	bool bCanRegenStamina = true;
+
+	UPROPERTY(BlueprintAssignable)
+	FOnDead OnDead;
 };

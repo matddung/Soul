@@ -36,6 +36,9 @@ void USoulAnimInstance::NativeUpdateAnimation(float DeltaSeconds)
 
 	FRotator DeltaRot = (AimRot - ActorRot).GetNormalized();
 	AimPitch = DeltaRot.Pitch;
+
+	bIsDead = CachedCharacter->GetIsDead();
+	bIsHit = CachedCharacter->GetIsHit();
 }
 
 bool USoulAnimInstance::IsAttacking() const
@@ -141,4 +144,9 @@ void USoulAnimInstance::AnimNotify_DodgeIFrameOff()
 void USoulAnimInstance::AnimNotify_DodgeEnd()
 {
 	OnDodgeEnd.Broadcast();
+}
+
+void USoulAnimInstance::PlayHitReactMontage()
+{
+	Montage_Play(HitReactMontage, 1.f);
 }

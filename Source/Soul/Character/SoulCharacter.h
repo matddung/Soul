@@ -33,12 +33,16 @@ public:
 	FORCEINLINE bool GetIsAttacking() { return bIsAttacking; }
 	FORCEINLINE EWeaponType GetCurrentWeaponType() const { return CurrentWeaponType; }
 	FORCEINLINE bool GetIsAiming() const { return bIsAiming; }
+	FORCEINLINE bool GetIsDead() const { return bIsDead; }
+	FORCEINLINE bool GetIsHit() const { return bIsHit; }
 
 protected:
 	virtual void BeginPlay() override;
 	virtual void PostInitializeComponents() override;
 	virtual void SetupPlayerInputComponent(class UInputComponent* PlayerInputComponent) override;
 	virtual void Tick(float DeltaSeconds) override;
+	virtual float TakeDamage(float DamageAmount, FDamageEvent const& DamageEvent, AController* EventInstigator, AActor* DamageCauser) override;
+	virtual void Reset() override;
 
 	void Move(const FInputActionValue& Value);
 	void Look(const FInputActionValue& Value);
@@ -69,7 +73,13 @@ protected:
 	void StartDodgeInvincible();
 	void EndDodgeInvincible();
 	void OnDodgeFinished();
-	void TickDodgeMove();
+
+	UFUNCTION()
+	void HandleDead();
+
+	void OnHitDamage();
+
+	void SpawnDamageText(AActor* DamagedActor, float Damage);
 
 protected:
 	FOnAttackEndDelegate OnAttackEnd;
@@ -110,22 +120,22 @@ protected:
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Components", meta = (AllowPrivateAccess = "true"))
 	UCameraComponent* FollowCamera;
 
-	UPROPERTY(EditAnywhere, Category = "Movement|Empty")
+	UPROPERTY(EditAnywhere, Category = "Movement")
 	float EmptyWalkSpeed = 400;
 
-	UPROPERTY(EditAnywhere, Category = "Movement|Empty")
+	UPROPERTY(EditAnywhere, Category = "Movement")
 	float EmptySprintSpeed = 800;
 
-	UPROPERTY(EditAnywhere, Category = "Movement|Sword")
+	UPROPERTY(EditAnywhere, Category = "Movement")
 	float SwordWalkSpeed = 200;
 
-	UPROPERTY(EditAnywhere, Category = "Movement|Sword")
+	UPROPERTY(EditAnywhere, Category = "Movement")
 	float SwordSprintSpeed = 400;
 
-	UPROPERTY(EditAnywhere, Category = "Movement|Gun")
+	UPROPERTY(EditAnywhere, Category = "Movement")
 	float GunWalkSpeed = 200;
 
-	UPROPERTY(EditAnywhere, Category = "Movement|Gun")
+	UPROPERTY(EditAnywhere, Category = "Movement")
 	float GunAimWalkSpeed = 50;
 
 	UPROPERTY(EditAnywhere, Category = "Movement")
@@ -206,6 +216,17 @@ protected:
 	UPROPERTY(EditAnywhere, Category = "Movement")
 	bool bDodgeInvincible = false;
 
-	UPROPERTY(EditAnywhere, Category = "Components")
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Components")
 	TObjectPtr<USoulCharacterStatComponent> StatComp;
+
+	UPROPERTY(EditAnywhere, Category = "Movement")
+	bool bIsDead = false;
+
+	UPROPERTY(VisibleInstanceOnly, Category = "Movement")
+	bool bIsHit = false;
+
+	FTimerHandle HitRecoveryTimer;
+
+	UPROPERTY(EditDefaultsOnly, Category = "UI")
+	TSubclassOf<class AFloatingDamageActor> DamageTextActorClass;
 };
