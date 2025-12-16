@@ -174,14 +174,11 @@ float ASoulCharacter::TakeDamage(float DamageAmount, FDamageEvent const& DamageE
 		if (FinalDamage > 0.f && StatComp->ApplyDamage(FinalDamage))
 		{
 			OnHitDamage();
+			SpawnDamageText(this, FinalDamage);
 			AppliedDamage = FinalDamage;
 		}
 
 		UE_LOG(LogTemp, Log, TEXT("TakeDamage | Damage: %.2f | HP: %.2f / %.2f"), FinalDamage, StatComp->HP, StatComp->MaxHP);
-	}
-	else
-	{
-		UE_LOG(LogTemp, Warning, TEXT("StatComp missing on %s"), *GetName());
 	}
 
 	return AppliedDamage;
