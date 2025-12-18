@@ -36,6 +36,11 @@ public:
 	FORCEINLINE bool GetIsDead() const { return bIsDead; }
 	FORCEINLINE bool GetIsHit() const { return bIsHit; }
 
+	void SetInteractTarget(AActor* NewTarget);
+	void ClearInteractTarget(AActor* Target);
+
+	void FaceToActor(const AActor* Target);
+
 protected:
 	virtual void BeginPlay() override;
 	virtual void PostInitializeComponents() override;
@@ -81,6 +86,8 @@ protected:
 
 	void SpawnDamageText(AActor* DamagedActor, float Damage);
 
+	void Interact(const FInputActionValue& Value);
+
 protected:
 	FOnAttackEndDelegate OnAttackEnd;
 
@@ -110,6 +117,9 @@ protected:
 
 	UPROPERTY(EditAnywhere, Category = "Input")
 	UInputAction* SwordDodgeAction;
+
+	UPROPERTY(EditAnywhere, Category = "Input")
+	UInputAction* InteractAction;
 
 	UPROPERTY(EditAnywhere, Category = "Input")
 	UInputMappingContext* DefaultMappingContext;
@@ -229,4 +239,26 @@ protected:
 
 	UPROPERTY(EditDefaultsOnly, Category = "UI")
 	TSubclassOf<class AFloatingDamageActor> DamageTextActorClass;
+
+	UPROPERTY(VisibleInstanceOnly, Category = "Interact")
+	TWeakObjectPtr<AActor> CurrentInteractTarget;
+
+	UPROPERTY(VisibleInstanceOnly, Category = "Interact")
+	bool bAutoFacing = false;
+
+	UPROPERTY()
+	TWeakObjectPtr<const AActor> AutoFaceTarget;
+
+	UPROPERTY(EditAnywhere, Category = "Interact")
+	float AutoFaceInterpSpeed = 5;
+
+	UPROPERTY(EditAnywhere, Category = "Interact")
+	float AutoFaceSnapDeg = 2;
+
+	bool bPrevOrientToMove = false;
+	bool bPrevUseControllerDesired = false;
+
+	void StartAutoFace(const AActor* Target);
+	void UpdateAutoFace(float DeltaSeconds);
+	void StopAutoFace();
 };

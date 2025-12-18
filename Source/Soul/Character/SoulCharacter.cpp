@@ -3,6 +3,7 @@
 #include "../Game/SoulPlayerController.h"
 #include "SoulCharacterStatComponent.h"
 #include "../UI/FloatingDamageActor.h"
+#include "../Interact/SoulInteractableInterface.h"
 
 #include "EnhancedInputComponent.h"
 #include "EnhancedInputSubsystems.h"
@@ -128,6 +129,8 @@ void ASoulCharacter::SetupPlayerInputComponent(UInputComponent* PlayerInputCompo
 		EnhancedInputComponent->BindAction(GunAimAction, ETriggerEvent::Completed, this, &ASoulCharacter::GunAimStop);
 		
 		EnhancedInputComponent->BindAction(SwordDodgeAction, ETriggerEvent::Started, this, &ASoulCharacter::Dodge);
+
+		EnhancedInputComponent->BindAction(InteractAction, ETriggerEvent::Started, this, &ASoulCharacter::Interact);
 	}
 }
 
@@ -154,6 +157,11 @@ void ASoulCharacter::Tick(float DeltaSeconds)
 
 		const FVector TargetOffset = bIsAiming ? AimSocketOffset : DefaultSocketOffset;
 		CameraBoom->SocketOffset = FMath::VInterpTo(CameraBoom->SocketOffset, TargetOffset, DeltaSeconds, CameraInterpSpeed);
+	}
+
+	if (bAutoFacing)
+	{
+		UpdateAutoFace(DeltaSeconds);
 	}
 }
 
@@ -548,14 +556,7 @@ void ASoulCharacter::AttackCheck()
 	FHitResult HitResult;
 	FCollisionQueryParams Params(NAME_None, false, this);
 
-	bool bResult = GetWorld()->SweepSingleByChannel(
-		HitResult,
-		GetActorLocation(),
-		GetActorLocation() + GetActorForwardVector() * SwordAttackRange,
-		FQuat::Identity,
-		ECollisionChannel::ECC_GameTraceChannel2,
-		FCollisionShape::MakeSphere(SwordAttackRadius),
-		Params);
+	bool bResult = GetWorld()->SweepSingleByChannel(HitResult, GetActorLocation(), GetActorLocation() + GetActorForwardVector() * SwordAttackRange, FQuat::Identity, ECollisionChannel::ECC_GameTraceChannel2, FCollisionShape::MakeSphere(SwordAttackRadius), Params);
 
 #if ENABLE_DRAW_DEBUG
 
@@ -566,14 +567,7 @@ void ASoulCharacter::AttackCheck()
 	FColor DrawColor = bResult ? FColor::Green : FColor::Red;
 	float DebugLifeTime = 5.0f;
 
-	DrawDebugCapsule(GetWorld(),
-		Center,
-		HalfHeight,
-		SwordAttackRadius,
-		CapsuleRot,
-		DrawColor,
-		false,
-		DebugLifeTime);
+	DrawDebugCapsule(GetWorld(), Center, HalfHeight, SwordAttackRadius, CapsuleRot, DrawColor, false, DebugLifeTime);
 
 #endif
 
@@ -701,4 +695,113 @@ void ASoulCharacter::SpawnDamageText(AActor* DamagedActor, float Damage)
 	{
 		DamageText->SetDamage(Damage);
 	}
+}
+
+void ASoulCharacter::Interact(const FInputActionValue& Value)
+{
+	if (!Value.Get<bool>()) return;
+
+	if (!CurrentInteractTarget.IsValid())
+	{
+		UE_LOG(LogTemp, Log, TEXT("Interact: No current target"));
+		return;
+	}
+
+	AActor* Target = CurrentInteractTarget.Get();
+
+	UE_LOG(LogTemp, Log, TEXT("Interact: %s"), *Target->GetName());
+	ISoulInteractableInterface::Execute_Interact(Target, this);
+}
+
+void ASoulCharacter::SetInteractTarget(AActor* NewTarget)
+{
+	if (!NewTarget) return;
+
+	if (!NewTarget->GetClass()->ImplementsInterface(USoulInteractableInterface::StaticClass()))
+		return;
+
+	CurrentInteractTarget = NewTarget;
+
+	UE_LOG(LogTemp, Log, TEXT("Interact target set: %s"), *NewTarget->GetName());
+}
+
+void ASoulCharacter::ClearInteractTarget(AActor* Target)
+{
+	if (CurrentInteractTarget.Get() == Target)
+	{
+		UE_LOG(LogTemp, Log, TEXT("Interact target cleared: %s"), *Target->GetName());
+		CurrentInteractTarget = nullptr;
+	}
+}
+
+void ASoulCharacter::FaceToActor(const AActor* Target)
+{
+	if (!Target) return;
+
+	StartAutoFace(Target);
+}
+
+void ASoulCharacter::StartAutoFace(const AActor* Target)
+{
+	if (!Target) return;
+
+	AutoFaceTarget = Target;
+	bAutoFacing = true;
+
+	if (UCharacterMovementComponent* MoveComp = GetCharacterMovement())
+	{
+		bPrevOrientToMove = MoveComp->bOrientRotationToMovement;
+		bPrevUseControllerDesired = MoveComp->bUseControllerDesiredRotation;
+
+		MoveComp->bOrientRotationToMovement = false;
+		MoveComp->bUseControllerDesiredRotation = false;
+
+		MoveComp->StopMovementImmediately();
+	}
+}
+
+void ASoulCharacter::StopAutoFace()
+{
+	bAutoFacing = false;
+	AutoFaceTarget = nullptr;
+
+	if (UCharacterMovementComponent* MoveComp = GetCharacterMovement())
+	{
+		MoveComp->bOrientRotationToMovement = bPrevOrientToMove;
+		MoveComp->bUseControllerDesiredRotation = bPrevUseControllerDesired;
+	}
+}
+
+void ASoulCharacter::UpdateAutoFace(float DeltaSeconds)
+{
+	if (!AutoFaceTarget.IsValid())
+	{
+		StopAutoFace();
+		return;
+	}
+
+	FVector ToTarget = AutoFaceTarget->GetActorLocation() - GetActorLocation();
+	ToTarget.Z = 0.f;
+
+	if (ToTarget.IsNearlyZero())
+	{
+		StopAutoFace();
+		return;
+	}
+
+	const FRotator CurrentRot = GetActorRotation();
+	const FRotator TargetRot = ToTarget.Rotation();
+
+	FRotator NewRot = FMath::RInterpTo(CurrentRot, TargetRot, DeltaSeconds, AutoFaceInterpSpeed);
+
+	const float YawDiff = FMath::Abs(FMath::FindDeltaAngleDegrees(NewRot.Yaw, TargetRot.Yaw));
+	if (YawDiff <= AutoFaceSnapDeg)
+	{
+		NewRot.Yaw = TargetRot.Yaw;
+		SetActorRotation(NewRot);
+		StopAutoFace();
+		return;
+	}
+
+	SetActorRotation(NewRot);
 }
