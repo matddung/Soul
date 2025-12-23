@@ -12,9 +12,6 @@ class USoulInteractableInterface : public UInterface
 	GENERATED_BODY()
 };
 
-/**
- * 
- */
 class SOUL_API ISoulInteractableInterface
 {
 	GENERATED_BODY()
@@ -25,4 +22,7 @@ protected:
 
 	UFUNCTION(BlueprintNativeEvent, BlueprintCallable, Category = "Interact")
 	bool CanInteract(ASoulCharacter* Interactor) const;
+
+	UFUNCTION(BlueprintNativeEvent, BlueprintCallable, Category = "Interact")
+	FText GetInteractText() const;
 };

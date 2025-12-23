@@ -4,6 +4,7 @@
 #include "SoulCharacterStatComponent.h"
 #include "../UI/FloatingDamageActor.h"
 #include "../Interact/SoulInteractableInterface.h"
+#include "../Interact/SoulLadderActor.h"
 
 #include "EnhancedInputComponent.h"
 #include "EnhancedInputSubsystems.h"
@@ -12,14 +13,14 @@
 #include "GameFramework/CharacterMovementComponent.h"
 #include "GameFramework/SpringArmComponent.h"
 #include "GameFramework/Controller.h"
+
 #include "Kismet/GameplayStatics.h"
-#include "Engine/Engine.h"
 
 ASoulCharacter::ASoulCharacter()
 {
 	PrimaryActorTick.bCanEverTick = true;
 
-	GetCapsuleComponent()->InitCapsuleSize(42.f, 96.0f);
+	GetCapsuleComponent()->InitCapsuleSize(42, 96);
 
 	bUseControllerRotationPitch = false;
 	bUseControllerRotationYaw = false;
@@ -27,11 +28,11 @@ ASoulCharacter::ASoulCharacter()
 
 	GetCharacterMovement()->bOrientRotationToMovement = true;
 	GetCharacterMovement()->bUseControllerDesiredRotation = true;
-	GetCharacterMovement()->RotationRate = FRotator(0.0f, 500.0f, 0.0f);
+	GetCharacterMovement()->RotationRate = FRotator(0, 500, 0);
 
-	GetCharacterMovement()->MinAnalogWalkSpeed = 20.f;
-	GetCharacterMovement()->BrakingDecelerationWalking = 2000.f;
-	GetCharacterMovement()->BrakingDecelerationFalling = 1500.0f;
+	GetCharacterMovement()->MinAnalogWalkSpeed = 20;
+	GetCharacterMovement()->BrakingDecelerationWalking = 2000;
+	GetCharacterMovement()->BrakingDecelerationFalling = 1500;
 
 	CameraBoom = CreateDefaultSubobject<USpringArmComponent>(TEXT("CameraBoom"));
 	CameraBoom->SetupAttachment(RootComponent);
@@ -106,6 +107,34 @@ void ASoulCharacter::PostInitializeComponents()
 	{
 		StatComp->OnDead.AddDynamic(this, &ASoulCharacter::HandleDead);
 	}
+
+	AnimInstance->OnLadderTopMountEnd.AddLambda([this]()
+		{
+			if (!CurrentLadder.IsValid())
+			{
+				return;
+			}
+
+			FVector SnapLoc; FRotator SnapRot;
+			CurrentLadder->GetSnapTransform(this, SnapLoc, SnapRot);
+			SetActorLocation(SnapLoc);
+			SetActorRotation(SnapRot);
+
+			EnterLadderMode();
+			bLadderMounting = false;
+		});
+
+	AnimInstance->OnLadderTopExitEnd.AddLambda([this]()
+		{
+			if (!CurrentLadder.IsValid())
+			{
+				return;
+			}
+
+			const FVector ExitLoc = CurrentLadder->GetTopExitLocation();
+			EndLadder();
+			bLadderMounting = false;
+		});
 }
 
 void ASoulCharacter::SetupPlayerInputComponent(UInputComponent* PlayerInputComponent)
@@ -131,6 +160,9 @@ void ASoulCharacter::SetupPlayerInputComponent(UInputComponent* PlayerInputCompo
 		EnhancedInputComponent->BindAction(SwordDodgeAction, ETriggerEvent::Started, this, &ASoulCharacter::Dodge);
 
 		EnhancedInputComponent->BindAction(InteractAction, ETriggerEvent::Started, this, &ASoulCharacter::Interact);
+
+		EnhancedInputComponent->BindAction(MoveAction, ETriggerEvent::Completed, this, &ASoulCharacter::MoveCompleted);
+		EnhancedInputComponent->BindAction(MoveAction, ETriggerEvent::Canceled, this, &ASoulCharacter::MoveCompleted);
 	}
 }
 
@@ -163,6 +195,17 @@ void ASoulCharacter::Tick(float DeltaSeconds)
 	{
 		UpdateAutoFace(DeltaSeconds);
 	}
+
+	if (LocomotionState == ELocomotionState::Ladder)
+	{
+		UpdateLadder(DeltaSeconds);
+	}
+
+	if (bTopMountMoving)
+	{
+		UpdateTopMountMove(DeltaSeconds);
+		return;
+	}
 }
 
 float ASoulCharacter::TakeDamage(float DamageAmount, FDamageEvent const& DamageEvent, AController* EventInstigator, AActor* DamageCauser)
@@ -173,13 +216,13 @@ float ASoulCharacter::TakeDamage(float DamageAmount, FDamageEvent const& DamageE
 	}
 
 	const float ActualDamage = Super::TakeDamage(DamageAmount, DamageEvent, EventInstigator, DamageCauser);
-	const float FinalDamage = (ActualDamage > 0.f) ? ActualDamage : DamageAmount;
+	const float FinalDamage = (ActualDamage > 0) ? ActualDamage : DamageAmount;
 
-	float AppliedDamage = 0.f;
+	float AppliedDamage = 0;
 
 	if (StatComp)
 	{
-		if (FinalDamage > 0.f && StatComp->ApplyDamage(FinalDamage))
+		if (FinalDamage > 0 && StatComp->ApplyDamage(FinalDamage))
 		{
 			OnHitDamage();
 			SpawnDamageText(this, FinalDamage);
@@ -210,6 +253,12 @@ void ASoulCharacter::Move(const FInputActionValue& Value)
 	}
 
 	FVector2D MovementVector = Value.Get<FVector2D>();
+
+	if (LocomotionState == ELocomotionState::Ladder)
+	{
+		LadderInput = MovementVector.Y;
+		return;
+	}
 
 	const FRotator Rotation = GetController()->GetControlRotation();
 	const FRotator YawRotation(0, Rotation.Yaw, 0);
@@ -272,6 +321,11 @@ void ASoulCharacter::UpdateMovementSpeed()
 
 void ASoulCharacter::SprintStart(const FInputActionValue& Value)
 {
+	if (LocomotionState == ELocomotionState::Ladder)
+	{
+		return;
+	}
+
 	if (GetController() == nullptr)
 	{
 		return;
@@ -300,6 +354,11 @@ void ASoulCharacter::SwapSword(const FInputActionValue& Value)
 		return;
 	}
 
+	if (LocomotionState == ELocomotionState::Ladder)
+	{
+		return;
+	}
+
 	StopAiming();
 
 	CurrentWeaponType = EWeaponType::Sword;
@@ -310,6 +369,11 @@ void ASoulCharacter::SwapSword(const FInputActionValue& Value)
 void ASoulCharacter::SwapGun(const FInputActionValue& Value)
 {
 	if (!Value.Get<bool>())
+	{
+		return;
+	}
+
+	if (LocomotionState == ELocomotionState::Ladder)
 	{
 		return;
 	}
@@ -326,6 +390,11 @@ void ASoulCharacter::SwapEmpty(const FInputActionValue& Value)
 		return;
 	}
 
+	if (LocomotionState == ELocomotionState::Ladder)
+	{
+		return;
+	}
+
 	StopAiming();
 
 	CurrentWeaponType = EWeaponType::Empty;
@@ -335,6 +404,11 @@ void ASoulCharacter::SwapEmpty(const FInputActionValue& Value)
 void ASoulCharacter::GunAimStart(const FInputActionValue& Value)
 {
 	if (!Value.Get<bool>())
+	{
+		return;
+	}
+
+	if (LocomotionState == ELocomotionState::Ladder)
 	{
 		return;
 	}
@@ -393,6 +467,11 @@ void ASoulCharacter::Attack(const FInputActionValue& Value)
 		return;
 	}
 
+	if (LocomotionState == ELocomotionState::Ladder)
+	{
+		return;
+	}
+
 	switch (CurrentWeaponType)
 	{
 	case EWeaponType::Sword:
@@ -410,6 +489,11 @@ void ASoulCharacter::Attack(const FInputActionValue& Value)
 
 void ASoulCharacter::HandleSwordAttack()
 {
+	if (LocomotionState == ELocomotionState::Ladder)
+	{
+		return;
+	}
+
 	if (bIsAttacking)
 	{
 		if (!FMath::IsWithinInclusive<int32>(CurrentCombo, 1, MaxCombo))
@@ -476,7 +560,7 @@ void ASoulCharacter::DoGunShot()
 
 #if ENABLE_DRAW_DEBUG
 	const FColor TraceColor = bHit ? FColor::Green : FColor::Red;
-	DrawDebugLine(GetWorld(), Start, End, TraceColor, false, 1.0f, 0, 1.0f);
+	DrawDebugLine(GetWorld(), Start, End, TraceColor, false, 1, 0, 1);
 #endif
 
 	if (bHit)
@@ -523,10 +607,12 @@ void ASoulCharacter::OnAttackMontageEnded(UAnimMontage* Montage, bool bInterrupt
 	{
 		return;
 	}
+
 	if (CurrentCombo <= 0)
 	{
 		return;
 	}
+
 	bIsAttacking = false;
 	AttackEndComboState();
 
@@ -561,11 +647,11 @@ void ASoulCharacter::AttackCheck()
 #if ENABLE_DRAW_DEBUG
 
 	FVector TraceVec = GetActorForwardVector() * SwordAttackRange;
-	FVector Center = GetActorLocation() + TraceVec * 0.5f;
-	float HalfHeight = SwordAttackRange * 0.5f + SwordAttackRadius;
+	FVector Center = GetActorLocation() + TraceVec * 0.5;
+	float HalfHeight = SwordAttackRange * 0.5 + SwordAttackRadius;
 	FQuat CapsuleRot = FRotationMatrix::MakeFromZ(TraceVec).ToQuat();
 	FColor DrawColor = bResult ? FColor::Green : FColor::Red;
-	float DebugLifeTime = 5.0f;
+	float DebugLifeTime = 5;
 
 	DrawDebugCapsule(GetWorld(), Center, HalfHeight, SwordAttackRadius, CapsuleRot, DrawColor, false, DebugLifeTime);
 
@@ -604,6 +690,11 @@ void ASoulCharacter::Dodge(const FInputActionValue& Value)
 		return;
 	}
 
+	if (LocomotionState == ELocomotionState::Ladder)
+	{
+		return;
+	}
+
 	bIsDodging = true;
 
 	UCharacterMovementComponent* MoveComp = GetCharacterMovement();
@@ -611,13 +702,13 @@ void ASoulCharacter::Dodge(const FInputActionValue& Value)
 	MoveComp->StopMovementImmediately();
 
 	FVector DodgeDir = MoveComp->GetLastInputVector();
-	DodgeDir.Z = 0.f;
+	DodgeDir.Z = 0;
 	DodgeDir = DodgeDir.GetSafeNormal();
 
 	if (DodgeDir.IsNearlyZero())
 	{
 		DodgeDir = GetActorForwardVector();
-		DodgeDir.Z = 0.f;
+		DodgeDir.Z = 0;
 		DodgeDir.Normalize();
 	}
 
@@ -650,7 +741,11 @@ void ASoulCharacter::EndDodgeInvincible()
 
 void ASoulCharacter::HandleDead()
 {
-	if (bIsDead) return;
+	if (bIsDead)
+	{
+		return;
+	}
+
 	bIsDead = true;
 
 	GetCharacterMovement()->DisableMovement();
@@ -679,14 +774,17 @@ void ASoulCharacter::OnHitDamage()
 
 	GetWorldTimerManager().SetTimer(HitRecoveryTimer, [this]() {
 		bIsHit = false;
-		}, 0.3f, false);
+		}, 0.3, false);
 }
 
 void ASoulCharacter::SpawnDamageText(AActor* DamagedActor, float Damage)
 {
-	if (!DamageTextActorClass || !DamagedActor) return;
+	if (!DamageTextActorClass || !DamagedActor)
+	{
+		return;
+	}
 
-	FVector TargetLocation = DamagedActor->GetActorLocation() + FVector(0.f, 0.f, 100.f);
+	FVector TargetLocation = DamagedActor->GetActorLocation() + FVector(0, 0, 100);
 	FActorSpawnParameters Params;
 	Params.SpawnCollisionHandlingOverride = ESpawnActorCollisionHandlingMethod::AlwaysSpawn;
 
@@ -699,51 +797,79 @@ void ASoulCharacter::SpawnDamageText(AActor* DamagedActor, float Damage)
 
 void ASoulCharacter::Interact(const FInputActionValue& Value)
 {
-	if (!Value.Get<bool>()) return;
+	if (!Value.Get<bool>())
+	{
+		return;
+	}
 
 	if (!CurrentInteractTarget.IsValid())
 	{
-		UE_LOG(LogTemp, Log, TEXT("Interact: No current target"));
 		return;
 	}
 
 	AActor* Target = CurrentInteractTarget.Get();
 
-	UE_LOG(LogTemp, Log, TEXT("Interact: %s"), *Target->GetName());
 	ISoulInteractableInterface::Execute_Interact(Target, this);
+
+	if (auto PC = Cast<ASoulPlayerController>(GetController()))
+    {
+        PC->ShowInteractPrompt(false, FText::GetEmpty());
+    }
 }
 
 void ASoulCharacter::SetInteractTarget(AActor* NewTarget)
 {
-	if (!NewTarget) return;
+	if (!NewTarget)
+	{
+		return;
+	}
 
 	if (!NewTarget->GetClass()->ImplementsInterface(USoulInteractableInterface::StaticClass()))
+	{
 		return;
+	}
 
 	CurrentInteractTarget = NewTarget;
 
-	UE_LOG(LogTemp, Log, TEXT("Interact target set: %s"), *NewTarget->GetName());
+	const FText Text = ISoulInteractableInterface::Execute_GetInteractText(NewTarget);
+
+	if (auto PC = Cast<ASoulPlayerController>(GetController()))
+	{
+		PC->ShowInteractPrompt(true, Text);
+	}
 }
 
 void ASoulCharacter::ClearInteractTarget(AActor* Target)
 {
-	if (CurrentInteractTarget.Get() == Target)
+	if (CurrentInteractTarget.Get() != Target)
 	{
-		UE_LOG(LogTemp, Log, TEXT("Interact target cleared: %s"), *Target->GetName());
-		CurrentInteractTarget = nullptr;
+		return;
+	}
+
+	CurrentInteractTarget = nullptr;
+
+	if (auto PC = Cast<ASoulPlayerController>(GetController()))
+	{
+		PC->ShowInteractPrompt(false, FText::GetEmpty());
 	}
 }
 
 void ASoulCharacter::FaceToActor(const AActor* Target)
 {
-	if (!Target) return;
+	if (!Target)
+	{
+		return;
+	}
 
 	StartAutoFace(Target);
 }
 
 void ASoulCharacter::StartAutoFace(const AActor* Target)
 {
-	if (!Target) return;
+	if (!Target)
+	{
+		return;
+	}
 
 	AutoFaceTarget = Target;
 	bAutoFacing = true;
@@ -770,6 +896,8 @@ void ASoulCharacter::StopAutoFace()
 		MoveComp->bOrientRotationToMovement = bPrevOrientToMove;
 		MoveComp->bUseControllerDesiredRotation = bPrevUseControllerDesired;
 	}
+
+	OnAutoFaceEnd.Broadcast();
 }
 
 void ASoulCharacter::UpdateAutoFace(float DeltaSeconds)
@@ -781,7 +909,7 @@ void ASoulCharacter::UpdateAutoFace(float DeltaSeconds)
 	}
 
 	FVector ToTarget = AutoFaceTarget->GetActorLocation() - GetActorLocation();
-	ToTarget.Z = 0.f;
+	ToTarget.Z = 0;
 
 	if (ToTarget.IsNearlyZero())
 	{
@@ -804,4 +932,256 @@ void ASoulCharacter::UpdateAutoFace(float DeltaSeconds)
 	}
 
 	SetActorRotation(NewRot);
+}
+
+void ASoulCharacter::PlayOpenBoxAnim()
+{
+	if (USoulAnimInstance* Anim = Cast<USoulAnimInstance>(GetMesh()->GetAnimInstance()))
+	{
+		Anim->PlayOpenBoxMontage();
+	}
+}
+
+void ASoulCharacter::SetWeaponType(EWeaponType NewType)
+{
+	if (CurrentWeaponType == NewType)
+	{
+		return;
+	}
+
+	CurrentWeaponType = NewType;
+}
+
+void ASoulCharacter::PlayOpenDoorAnim()
+{
+	if (USoulAnimInstance* Anim = Cast<USoulAnimInstance>(GetMesh()->GetAnimInstance()))
+	{
+		Anim->PlayOpenDoorMontage();
+	}
+}
+
+void ASoulCharacter::BeginLadder(ASoulLadderActor* Ladder)
+{
+	if (!Ladder)
+	{
+		return;
+	}
+
+	if (LocomotionState != ELocomotionState::Normal)
+	{
+		return;
+	}
+
+	StopAiming();
+	bIsSprinting = false;
+	UpdateMovementSpeed();
+
+	CurrentLadder = Ladder;
+	LadderInput = 0;
+	bLadderMounting = true;
+
+	FaceToActor(Ladder);
+
+	OnAutoFaceEnd.RemoveAll(this);
+	OnAutoFaceEnd.AddLambda([this]()
+		{
+			if (!CurrentLadder.IsValid())
+			{
+				bLadderMounting = false;
+				return;
+			}
+
+			if (CurrentLadder->GetLastUseSide() == ELadderUseSide::Top)
+			{
+				bLadderMounting = true;
+				bTopMountMoving = true;
+
+				TopMountMoveElapsed = 0;
+				TopMountStartLoc = GetActorLocation();
+				TopMountStartRot = GetActorRotation();
+
+				TopMountTargetLoc = CurrentLadder->GetTopMountStartLocation();
+				TopMountTargetRot = CurrentLadder->GetTopMountStartRotation();
+
+				if (UCharacterMovementComponent* MoveComp = GetCharacterMovement())
+				{
+					MoveComp->StopMovementImmediately();
+					MoveComp->SetMovementMode(MOVE_Flying);
+					MoveComp->Velocity = FVector::ZeroVector;
+					MoveComp->bOrientRotationToMovement = false;
+					MoveComp->bUseControllerDesiredRotation = false;
+				}
+
+				bUseControllerRotationYaw = false;
+
+				return;
+			}
+
+			FVector SnapLoc;
+			FRotator SnapRot;
+			CurrentLadder->GetSnapTransform(this, SnapLoc, SnapRot);
+
+			SetActorLocation(SnapLoc);
+			SetActorRotation(SnapRot);
+
+			EnterLadderMode();
+
+			bLadderMounting = false;
+		});
+}
+
+void ASoulCharacter::EndLadder()
+{
+	if (LocomotionState != ELocomotionState::Ladder)
+	{
+		return;
+	}
+
+	ExitLadderMode();
+
+	CurrentLadder = nullptr;
+	LadderInput = 0;
+	bLadderMounting = false;
+}
+
+void ASoulCharacter::EnterLadderMode()
+{
+	LocomotionState = ELocomotionState::Ladder;
+
+	if (UCharacterMovementComponent* MoveComp = GetCharacterMovement())
+	{
+		MoveComp->StopMovementImmediately();
+		MoveComp->SetMovementMode(MOVE_Flying);
+		MoveComp->Velocity = FVector::ZeroVector;
+
+		MoveComp->bOrientRotationToMovement = false;
+		MoveComp->bUseControllerDesiredRotation = false;
+	}
+
+	bUseControllerRotationYaw = false;
+}
+
+void ASoulCharacter::ExitLadderMode()
+{
+	LocomotionState = ELocomotionState::Normal;
+
+	if (UCharacterMovementComponent* MoveComp = GetCharacterMovement())
+	{
+		MoveComp->SetMovementMode(MOVE_Walking);
+		MoveComp->bOrientRotationToMovement = true;
+		MoveComp->bUseControllerDesiredRotation = true;
+	}
+}
+
+void ASoulCharacter::UpdateLadder(float DeltaSeconds)
+{
+	if (!CurrentLadder.IsValid())
+	{
+		EndLadder();
+		return;
+	}
+
+	if (bLadderMounting)
+	{
+		if (UCharacterMovementComponent* MoveComp = GetCharacterMovement())
+		{
+			MoveComp->Velocity = FVector::ZeroVector;
+		}
+
+		return;
+	}
+
+	FVector SnapLoc;
+	FRotator SnapRot;
+	CurrentLadder->GetSnapTransform(this, SnapLoc, SnapRot);
+
+	float MinZ, MaxZ;
+	CurrentLadder->GetClimbZRange(MinZ, MaxZ);
+
+	FVector NewLoc = GetActorLocation();
+
+	NewLoc.X = SnapLoc.X;
+	NewLoc.Y = SnapLoc.Y;
+
+	NewLoc.Z += LadderInput * LadderMoveSpeed * DeltaSeconds;
+	NewLoc.Z = FMath::Clamp(NewLoc.Z, MinZ, MaxZ);
+
+	const FRotator NewRot = FMath::RInterpTo(GetActorRotation(), SnapRot, DeltaSeconds, LadderAlignInterpSpeed);
+
+	SetActorLocation(NewLoc);
+	SetActorRotation(NewRot);
+
+	constexpr float EndEpsilon = 1;
+
+	const bool bAtTop = FMath::Abs(NewLoc.Z - MaxZ) <= EndEpsilon;
+	const bool bAtBottom = FMath::Abs(NewLoc.Z - MinZ) <= EndEpsilon;
+
+	if (bAtTop && LadderInput > 0)
+	{
+		LadderInput = 0;
+		bLadderMounting = true;
+
+		if (AnimInstance)
+        {
+            AnimInstance->PlayLadderTopExitMontage();
+        }
+		return;
+	}
+
+	if (bAtBottom && LadderInput < 0)
+	{
+		const FVector ExitLoc = CurrentLadder->GetBottomExitLocation();
+		EndLadder();
+		SetActorLocation(ExitLoc, false, nullptr, ETeleportType::TeleportPhysics);
+		return;
+	}
+
+	if (UCharacterMovementComponent* MoveComp = GetCharacterMovement())
+	{
+		MoveComp->Velocity = FVector::ZeroVector;
+	}
+}
+
+void ASoulCharacter::MoveCompleted(const FInputActionValue& Value)
+{
+	if (LocomotionState == ELocomotionState::Ladder)
+	{
+		LadderInput = 0;
+	}
+}
+
+void ASoulCharacter::UpdateTopMountMove(float DeltaSeconds)
+{
+	if (!CurrentLadder.IsValid())
+	{
+		bTopMountMoving = false;
+		bLadderMounting = false;
+		return;
+	}
+
+	TopMountMoveElapsed += DeltaSeconds;
+	const float Alpha = FMath::Clamp(TopMountMoveElapsed / TopMountMoveTime, 0, 1);
+
+	const FVector NewLoc = FMath::Lerp(TopMountStartLoc, TopMountTargetLoc, Alpha);
+	const FRotator NewRot = FMath::Lerp(TopMountStartRot, TopMountTargetRot, Alpha);
+
+	SetActorLocation(NewLoc, false, nullptr, ETeleportType::TeleportPhysics);
+	SetActorRotation(NewRot);
+
+	if (UCharacterMovementComponent* MoveComp = GetCharacterMovement())
+	{
+		MoveComp->StopMovementImmediately();
+		MoveComp->SetMovementMode(MOVE_Flying);
+		MoveComp->Velocity = FVector::ZeroVector;
+	}
+
+	if (Alpha >= 1)
+	{
+		bTopMountMoving = false;
+
+		if (AnimInstance)
+		{
+			AnimInstance->PlayLadderTopMountMontage();
+		}
+	}
 }

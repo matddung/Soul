@@ -10,8 +10,10 @@ class UInputMappingContext;
 class USpringArmComponent;
 class UCameraComponent;
 class USoulCharacterStatComponent;
+class ASoulLadderActor;
 
 DECLARE_MULTICAST_DELEGATE(FOnAttackEndDelegate);
+DECLARE_MULTICAST_DELEGATE(FOnAutoFaceEndDelegate);
 
 UENUM(BlueprintType)
 enum class EWeaponType : uint8
@@ -19,6 +21,13 @@ enum class EWeaponType : uint8
 	Empty	UMETA(DisplayName = "Empty"),
 	Sword	UMETA(DisplayName = "Sword"),
 	Gun		UMETA(DisplayName = "Gun")
+};
+
+UENUM(BlueprintType)
+enum class ELocomotionState : uint8
+{
+	Normal	UMETA(DisplayName = "Normal"),
+	Ladder	UMETA(DisplayName = "Ladder")
 };
 
 UCLASS()
@@ -35,11 +44,21 @@ public:
 	FORCEINLINE bool GetIsAiming() const { return bIsAiming; }
 	FORCEINLINE bool GetIsDead() const { return bIsDead; }
 	FORCEINLINE bool GetIsHit() const { return bIsHit; }
+	FORCEINLINE bool IsOnLadder() const { return LocomotionState == ELocomotionState::Ladder; }
+	FORCEINLINE float GetLadderInput() const { return LadderInput; }
 
 	void SetInteractTarget(AActor* NewTarget);
 	void ClearInteractTarget(AActor* Target);
 
 	void FaceToActor(const AActor* Target);
+
+	void PlayOpenBoxAnim();
+	void SetWeaponType(EWeaponType NewType);
+
+	void PlayOpenDoorAnim();
+
+	void BeginLadder(ASoulLadderActor* Ladder);
+	void EndLadder();
 
 protected:
 	virtual void BeginPlay() override;
@@ -88,47 +107,62 @@ protected:
 
 	void Interact(const FInputActionValue& Value);
 
+	void StartAutoFace(const AActor* Target);
+	void UpdateAutoFace(float DeltaSeconds);
+	void StopAutoFace();
+
+	void EnterLadderMode();
+	void ExitLadderMode();
+	void UpdateLadder(float DeltaSeconds);
+
+	void MoveCompleted(const FInputActionValue& Value);
+
+	void UpdateTopMountMove(float DeltaSeconds);
+
+public:
+	FOnAutoFaceEndDelegate OnAutoFaceEnd;
+
 protected:
 	FOnAttackEndDelegate OnAttackEnd;
 
 	UPROPERTY(EditAnywhere,Category="Input")
-	UInputAction* MoveAction;
+	TObjectPtr<UInputAction> MoveAction;
 
 	UPROPERTY(EditAnywhere, Category = "Input")
-	UInputAction* LookAction;
+	TObjectPtr<UInputAction> LookAction;
 
 	UPROPERTY(EditAnywhere, Category = "Input")
-	UInputAction* SprintAction;
+	TObjectPtr<UInputAction> SprintAction;
 
 	UPROPERTY(EditAnywhere, Category = "Input")
-	UInputAction* AttackAction;
+	TObjectPtr<UInputAction> AttackAction;
 
 	UPROPERTY(EditAnywhere, Category = "Input")
-	UInputAction* SwapSwordAction;
+	TObjectPtr<UInputAction> SwapSwordAction;
 
 	UPROPERTY(EditAnywhere, Category = "Input")
-	UInputAction* SwapGunAction;
+	TObjectPtr<UInputAction> SwapGunAction;
 
 	UPROPERTY(EditAnywhere, Category = "Input")
-	UInputAction* SwapEmptyAction;
+	TObjectPtr<UInputAction> SwapEmptyAction;
 
 	UPROPERTY(EditAnywhere, Category = "Input")
-	UInputAction* GunAimAction;
+	TObjectPtr<UInputAction> GunAimAction;
 
 	UPROPERTY(EditAnywhere, Category = "Input")
-	UInputAction* SwordDodgeAction;
+	TObjectPtr<UInputAction> SwordDodgeAction;
 
 	UPROPERTY(EditAnywhere, Category = "Input")
-	UInputAction* InteractAction;
+	TObjectPtr<UInputAction> InteractAction;
 
 	UPROPERTY(EditAnywhere, Category = "Input")
-	UInputMappingContext* DefaultMappingContext;
+	TObjectPtr<UInputMappingContext> DefaultMappingContext;
 
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Components", meta = (AllowPrivateAccess = "true"))
-	USpringArmComponent* CameraBoom;
+	TObjectPtr<USpringArmComponent> CameraBoom;
 
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Components", meta = (AllowPrivateAccess = "true"))
-	UCameraComponent* FollowCamera;
+	TObjectPtr<UCameraComponent> FollowCamera;
 
 	UPROPERTY(EditAnywhere, Category = "Movement")
 	float EmptyWalkSpeed = 400;
@@ -152,7 +186,7 @@ protected:
 	bool bIsSprinting = false;
 
 	UPROPERTY()
-	class USoulAnimInstance* AnimInstance;
+	TObjectPtr<class USoulAnimInstance> AnimInstance;
 
 	UPROPERTY(VisibleInstanceOnly, Category = "Weapon")
 	bool bIsAttacking;
@@ -197,10 +231,10 @@ protected:
 	FVector DefaultSocketOffset = FVector::ZeroVector;
 
 	UPROPERTY(EditAnywhere, Category = "Camera")
-	FVector AimSocketOffset = FVector(0.f, 50.f, 40.f);
+	FVector AimSocketOffset = FVector(0, 50, 40);
 
 	UPROPERTY(EditAnywhere, Category = "Camera")
-	float CameraInterpSpeed = 10.f;
+	float CameraInterpSpeed = 10;
 
 	UPROPERTY(VisibleInstanceOnly, Category = "Weapon")
 	float SwordAttackRange = 200;
@@ -258,7 +292,40 @@ protected:
 	bool bPrevOrientToMove = false;
 	bool bPrevUseControllerDesired = false;
 
-	void StartAutoFace(const AActor* Target);
-	void UpdateAutoFace(float DeltaSeconds);
-	void StopAutoFace();
+	UPROPERTY(VisibleInstanceOnly, Category = "Movement")
+	ELocomotionState LocomotionState = ELocomotionState::Normal;
+
+	UPROPERTY()
+	TWeakObjectPtr<ASoulLadderActor> CurrentLadder;
+
+	UPROPERTY(VisibleInstanceOnly, Category = "Ladder")
+	float LadderInput = 0;
+
+	UPROPERTY(EditAnywhere, Category = "Ladder")
+	float LadderMoveSpeed = 90;
+
+	UPROPERTY(EditAnywhere, Category = "Ladder")
+	float LadderAlignInterpSpeed = 12;
+
+	UPROPERTY(VisibleInstanceOnly, Category = "Ladder")
+	bool bLadderMounting = false;
+
+	UPROPERTY(EditAnywhere, Category = "Ladder")
+	float LadderInputTimeout = 0;
+
+	UPROPERTY(VisibleInstanceOnly, Category = "Ladder")
+	bool bTopMountMoving = false;
+
+	UPROPERTY(VisibleInstanceOnly, Category = "Ladder")
+	FVector TopMountTargetLoc;
+
+	UPROPERTY(VisibleInstanceOnly, Category = "Ladder")
+	FRotator TopMountTargetRot;
+
+	UPROPERTY(EditAnywhere, Category = "Ladder")
+	float TopMountMoveTime = 0;
+
+	float TopMountMoveElapsed = 0;
+	FVector TopMountStartLoc;
+	FRotator TopMountStartRot;
 };

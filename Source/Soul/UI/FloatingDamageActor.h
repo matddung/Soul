@@ -22,11 +22,11 @@ private:
     UPROPERTY(VisibleAnywhere)
     class UWidgetComponent* WidgetComponent;
 
-    float LifeTime = 1.2f;
+    float LifeTime = 1.2;
 
     UPROPERTY(EditDefaultsOnly, Category = "Damage")
-    float RiseSpeed = 50.0f;
+    float RiseSpeed = 50;
 
 private:
-    float ElapsedTime = 0.0f;
+    float ElapsedTime = 0;
 };

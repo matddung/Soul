@@ -67,28 +67,28 @@ public:
 	int32 END = 1;
 
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Stats")
-	float MaxHP = 300.f;
+	float MaxHP = 300;
 
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Stats")
-	float MaxStamina = 100.f;
+	float MaxStamina = 100;
 
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Stats")
-	float HP = 300.f;
+	float HP = 300;
 
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Stats")
-	float Stamina = 100.f;
+	float Stamina = 100;
 
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Stats")
-	float HP_Base = 300.f;
+	float HP_Base = 300;
 
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Stats")
-	float HP_PerVIT = 30.f;
+	float HP_PerVIT = 30;
 
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Stats")
-	float Stamina_Base = 100.f;
+	float Stamina_Base = 100;
 
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Stats")
-	float Stamina_PerEND = 5.f;
+	float Stamina_PerEND = 5;
 
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Stats")
 	int32 Souls = 0;
@@ -97,16 +97,16 @@ public:
 	int32 BaseInvestCost = 100;
 
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Stats")
-	float CostMultiplier = 1.1f;
+	float CostMultiplier = 1.1;
 
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Stats")
 	int32 InvestCount = 0;
 
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Stats")
-	float StaminaRegenRate = 20.f;
+	float StaminaRegenRate = 20;
 
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Stats")
-	float StaminaRegenDelay = 0.8f;
+	float StaminaRegenDelay = 0.8;
 
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Stats")
 	bool bCanRegenStamina = true;

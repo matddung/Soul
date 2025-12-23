@@ -34,22 +34,23 @@ void USoulCharacterStatComponent::RecalculateDerivedStats(bool bKeepCurrentRatio
 
 	if (bKeepCurrentRatio)
 	{
-		const float HPRatio = (OldMaxHP > 0.f) ? (HP / OldMaxHP) : 1.f;
-		const float StRatio = (OldMaxStamina > 0.f) ? (Stamina / OldMaxStamina) : 1.f;
+		const float HPRatio = (OldMaxHP > 0) ? (HP / OldMaxHP) : 1;
+		const float StRatio = (OldMaxStamina > 0) ? (Stamina / OldMaxStamina) : 1;
 
-		HP = FMath::Clamp(MaxHP * HPRatio, 0.f, MaxHP);
-		Stamina = FMath::Clamp(MaxStamina * StRatio, 0.f, MaxStamina);
+		HP = FMath::Clamp(MaxHP * HPRatio, 0, MaxHP);
+		Stamina = FMath::Clamp(MaxStamina * StRatio, 0, MaxStamina);
 	}
 	else
 	{
-		HP = FMath::Clamp(HP, 0.f, MaxHP);
-		Stamina = FMath::Clamp(Stamina, 0.f, MaxStamina);
+		HP = FMath::Clamp(HP, 0, MaxHP);
+		Stamina = FMath::Clamp(Stamina, 0, MaxStamina);
 	}
 }
 
 bool USoulCharacterStatComponent::TryInvestStat(ECharacterStatType StatToIncrease)
 {
 	const int32 Cost = GetCurrentInvestCost();
+
 	if (Souls < Cost)
 	{
 		return false;
@@ -73,7 +74,7 @@ void USoulCharacterStatComponent::AddSouls(int32 Amount)
 
 bool USoulCharacterStatComponent::ApplyDamage(float DamageAmount)
 {
-	if (DamageAmount <= 0.f)
+	if (DamageAmount <= 0)
 	{
 		return false;
 	}
@@ -85,9 +86,9 @@ bool USoulCharacterStatComponent::ApplyDamage(float DamageAmount)
 
 	const float OldHP = HP;
 
-	HP = FMath::Clamp(HP - DamageAmount, 0.f, MaxHP);
+	HP = FMath::Clamp(HP - DamageAmount, 0, MaxHP);
 
-	if (HP <= 0.f && OldHP > 0.f)
+	if (HP <= 0 && OldHP > 0)
 	{
 		OnDead.Broadcast();
 	}
@@ -97,7 +98,7 @@ bool USoulCharacterStatComponent::ApplyDamage(float DamageAmount)
 
 bool USoulCharacterStatComponent::IsDead() const
 {
-	return HP <= 0.f;
+	return HP <= 0;
 }
 
 void USoulCharacterStatComponent::ResetCurrentToMax()

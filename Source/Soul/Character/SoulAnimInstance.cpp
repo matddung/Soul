@@ -10,7 +10,10 @@ void USoulAnimInstance::NativeUpdateAnimation(float DeltaSeconds)
 	Super::NativeUpdateAnimation(DeltaSeconds);
 
 	APawn* Pawn = TryGetPawnOwner();
-	if (!::IsValid(Pawn)) return;
+	if (!::IsValid(Pawn))
+	{
+		return;
+	}
 
 	CachedCharacter = Cast<ASoulCharacter>(Pawn);
 
@@ -39,6 +42,9 @@ void USoulAnimInstance::NativeUpdateAnimation(float DeltaSeconds)
 
 	bIsDead = CachedCharacter->GetIsDead();
 	bIsHit = CachedCharacter->GetIsHit();
+
+	bOnLadder = CachedCharacter->IsOnLadder();
+	LadderSpeed = CachedCharacter->GetLadderInput();
 }
 
 bool USoulAnimInstance::IsAttacking() const
@@ -148,5 +154,55 @@ void USoulAnimInstance::AnimNotify_DodgeEnd()
 
 void USoulAnimInstance::PlayHitReactMontage()
 {
-	Montage_Play(HitReactMontage, 1.f);
+	Montage_Play(HitReactMontage, 1);
+}
+
+void USoulAnimInstance::PlayOpenBoxMontage()
+{
+	if (!OpenBoxMontage)
+	{
+		return;
+	}
+
+	if (IsAnyMontagePlaying())
+	{
+		return;
+	}
+
+	Montage_Play(OpenBoxMontage, 1);
+}
+
+void USoulAnimInstance::PlayOpenDoorMontage()
+{
+	if (!OpenDoorMontage)
+	{
+		return;
+	}
+
+	if (IsAnyMontagePlaying())
+	{
+		return;
+	}
+
+	Montage_Play(OpenDoorMontage, 1);
+}
+
+void USoulAnimInstance::PlayLadderTopMountMontage()
+{
+	Montage_Play(LadderTopMountMontage, 1);
+}
+
+void USoulAnimInstance::PlayLadderTopExitMontage()
+{
+	Montage_Play(LadderTopExitMontage, 1);
+}
+
+void USoulAnimInstance::AnimNotify_LadderTopMountEnd()
+{
+	OnLadderTopMountEnd.Broadcast();
+}
+
+void USoulAnimInstance::AnimNotify_LadderTopExitEnd()
+{
+	OnLadderTopExitEnd.Broadcast();
 }

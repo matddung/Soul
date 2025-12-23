@@ -24,7 +24,7 @@ void AFloatingDamageActor::BeginPlay()
 {
     Super::BeginPlay();
     SetLifeSpan(LifeTime);
-    ElapsedTime = 0.0f;
+    ElapsedTime = 0;
 }
 
 void AFloatingDamageActor::Tick(float DeltaTime)

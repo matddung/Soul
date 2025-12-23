@@ -5,7 +5,6 @@
 #include "SoulInteractableInterface.h"
 #include "SoulBoxActor.generated.h"
 
-class UStaticMeshComponent;
 class UBoxComponent;
 class UParticleSystem;
 class UParticleSystemComponent;
@@ -20,6 +19,7 @@ public:
 
 	virtual void Interact_Implementation(ASoulCharacter* Interactor) override;
 	virtual bool CanInteract_Implementation(ASoulCharacter* Interactor) const override;
+	virtual FText GetInteractText_Implementation() const override;
 
 protected:
 	virtual void BeginPlay() override;
@@ -30,24 +30,21 @@ protected:
 	UFUNCTION()
 	void OnInteractBoxEndOverlap(UPrimitiveComponent* OverlappedComp, AActor* OtherActor, UPrimitiveComponent* OtherComp, int32 OtherBodyIndex);
 
-	void FinishOpen();
-
 	void FinishDisappear();
 
 protected:
 	UPROPERTY(VisibleAnywhere)
-	UStaticMeshComponent* ChestMesh;
+	TObjectPtr<UStaticMeshComponent> BoxMesh;
 
 	UPROPERTY(VisibleAnywhere)
-	UBoxComponent* InteractBox;
+	TObjectPtr<UBoxComponent> InteractBox;
 
 	UPROPERTY(VisibleInstanceOnly, Category = "Box")
 	bool bOpened = false;
 
-	UPROPERTY(EditAnywhere, Category = "Box")
-	float OpenDelaySeconds = 0.6f;
+	UPROPERTY(VisibleInstanceOnly, Category = "Box")
+	float OpenDelaySeconds = 0.6;
 
-private:
 	FTimerHandle OpenTimerHandle;
 
 	UPROPERTY(EditAnywhere, Category = "Box")
@@ -56,8 +53,8 @@ private:
 	UPROPERTY()
 	TObjectPtr<UParticleSystemComponent> SpawnedParticle;
 
-	UPROPERTY(EditAnywhere, Category = "Box")
-	float DisappearDelay = 2.0f;
+	UPROPERTY(VisibleInstanceOnly, Category = "Box")
+	float DisappearDelay = 3;
 
 	FTimerHandle DisappearTimerHandle;
 };

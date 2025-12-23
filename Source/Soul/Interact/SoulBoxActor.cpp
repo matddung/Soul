@@ -10,8 +10,8 @@ ASoulBoxActor::ASoulBoxActor()
 {
 	PrimaryActorTick.bCanEverTick = false;
 
-	ChestMesh = CreateDefaultSubobject<UStaticMeshComponent>(TEXT("ChestMesh"));
-	SetRootComponent(ChestMesh);
+	BoxMesh = CreateDefaultSubobject<UStaticMeshComponent>(TEXT("BoxMesh"));
+	SetRootComponent(BoxMesh);
 
 	InteractBox = CreateDefaultSubobject<UBoxComponent>(TEXT("InteractBox"));
 	InteractBox->SetupAttachment(RootComponent);
@@ -20,7 +20,6 @@ ASoulBoxActor::ASoulBoxActor()
 	InteractBox->SetCollisionObjectType(ECC_WorldDynamic);
 	InteractBox->SetCollisionResponseToAllChannels(ECR_Ignore);
 	InteractBox->SetCollisionResponseToChannel(ECC_Pawn, ECR_Overlap);
-
 	InteractBox->SetBoxExtent(FVector(600, 600, 200));
 }
 
@@ -41,7 +40,9 @@ void ASoulBoxActor::Interact_Implementation(ASoulCharacter* Interactor)
 
 	if (Interactor)
 	{
+		Interactor->SetWeaponType(EWeaponType::Empty);
 		Interactor->FaceToActor(this);
+		Interactor->PlayOpenBoxAnim();
 	}
 
 	bOpened = true;
@@ -50,13 +51,13 @@ void ASoulBoxActor::Interact_Implementation(ASoulCharacter* Interactor)
 
 	if (OpenParticle)
 	{
-		const FVector SpawnLoc = ChestMesh->GetComponentLocation();
-		const FRotator SpawnRot = ChestMesh->GetComponentRotation();
+		const FVector SpawnLoc = BoxMesh->GetComponentLocation();
+		const FRotator SpawnRot = BoxMesh->GetComponentRotation();
 
 		SpawnedParticle = UGameplayStatics::SpawnEmitterAtLocation(GetWorld(), OpenParticle, SpawnLoc, SpawnRot, true);
 	}
 
-	ChestMesh->SetCollisionEnabled(ECollisionEnabled::NoCollision);
+	BoxMesh->SetCollisionEnabled(ECollisionEnabled::NoCollision);
 
 	GetWorldTimerManager().SetTimer(DisappearTimerHandle, this, &ASoulBoxActor::FinishDisappear, DisappearDelay, false);
 }
@@ -66,37 +67,43 @@ bool ASoulBoxActor::CanInteract_Implementation(ASoulCharacter* Interactor) const
 	return !bOpened;
 }
 
-void ASoulBoxActor::FinishOpen()
+FText ASoulBoxActor::GetInteractText_Implementation() const
 {
-	ChestMesh->SetVisibility(false, true);
-	ChestMesh->SetCollisionEnabled(ECollisionEnabled::NoCollision);
-
-	SetLifeSpan(5.f);
+	return FText::FromString(TEXT("F: Open Box"));
 }
 
-void ASoulBoxActor::OnInteractBoxBeginOverlap(UPrimitiveComponent*, AActor* OtherActor,
-	UPrimitiveComponent*, int32, bool, const FHitResult&)
+void ASoulBoxActor::OnInteractBoxBeginOverlap(UPrimitiveComponent*, AActor* OtherActor, UPrimitiveComponent*, int32, bool, const FHitResult&)
 {
-	if (bOpened) return;
+	if (bOpened)
+	{
+		return;
+	}
 
 	ASoulCharacter* Player = Cast<ASoulCharacter>(OtherActor);
-	if (!Player) return;
+
+	if (!Player)
+	{
+		return;
+	}
 
 	Player->SetInteractTarget(this);
 }
 
-void ASoulBoxActor::OnInteractBoxEndOverlap(UPrimitiveComponent*, AActor* OtherActor,
-	UPrimitiveComponent*, int32)
+void ASoulBoxActor::OnInteractBoxEndOverlap(UPrimitiveComponent*, AActor* OtherActor, UPrimitiveComponent*, int32)
 {
 	ASoulCharacter* Player = Cast<ASoulCharacter>(OtherActor);
-	if (!Player) return;
+
+	if (!Player)
+	{
+		return;
+	}
 
 	Player->ClearInteractTarget(this);
 }
 
 void ASoulBoxActor::FinishDisappear()
 {
-	ChestMesh->SetVisibility(false, true);
+	BoxMesh->SetVisibility(false, true);
 
 	if (SpawnedParticle)
 	{

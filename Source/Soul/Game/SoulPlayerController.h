@@ -5,6 +5,8 @@
 #include "SoulPlayerController.generated.h"
 
 class UUserWidget;
+class UCrosshairWidget;
+class UInteractPromptWidget;
 
 UCLASS()
 class SOUL_API ASoulPlayerController : public APlayerController
@@ -18,13 +20,21 @@ public:
 	void OnCrosshairShot();
 	void OnCrosshairReset();
 
+	void ShowInteractPrompt(bool bShow, const FText& Text);
+
 protected:
 	virtual void BeginPlay() override;
 	
 protected:
-	UPROPERTY(EditAnywhere, Category = "UI")
-	TSubclassOf<UUserWidget> CrosshairWidgetClass;
+	UPROPERTY(EditDefaultsOnly, Category = "UI")
+	TSubclassOf<UCrosshairWidget> CrosshairWidgetClass;
 
 	UPROPERTY()
-	class UCrosshairWidget* CrosshairWidget;
+	TObjectPtr<UCrosshairWidget> CrosshairWidget;
+
+	UPROPERTY(EditDefaultsOnly, Category = "UI")
+	TSubclassOf<UInteractPromptWidget> InteractPromptClass;
+
+	UPROPERTY()
+	TObjectPtr<UInteractPromptWidget> InteractPromptWidget;
 };
