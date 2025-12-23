@@ -73,9 +73,4 @@ protected:
 
 	UPROPERTY()
 	TWeakObjectPtr<ASoulCharacter> CachedInteractor;
-
-	UPROPERTY(EditAnywhere, Category = "Door")
-	float WalkThroughDuration = 2;
-
-	FTimerHandle LevelMoveTimer;
 };

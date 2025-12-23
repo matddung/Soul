@@ -26,7 +26,4 @@ private:
 
     UPROPERTY(EditDefaultsOnly, Category = "Damage")
     float RiseSpeed = 50;
-
-private:
-    float ElapsedTime = 0;
 };

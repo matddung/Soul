@@ -24,7 +24,6 @@ void AFloatingDamageActor::BeginPlay()
 {
     Super::BeginPlay();
     SetLifeSpan(LifeTime);
-    ElapsedTime = 0;
 }
 
 void AFloatingDamageActor::Tick(float DeltaTime)
@@ -34,12 +33,6 @@ void AFloatingDamageActor::Tick(float DeltaTime)
     FVector NewLocation = GetActorLocation();
     NewLocation.Z += RiseSpeed * DeltaTime;
     SetActorLocation(NewLocation);
-
-    ElapsedTime += DeltaTime;
-    if (ElapsedTime >= LifeTime)
-    {
-        Destroy();
-    }
 }
 
 void AFloatingDamageActor::SetDamage(float Damage)

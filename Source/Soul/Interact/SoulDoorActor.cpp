@@ -7,6 +7,7 @@
 ASoulDoorActor::ASoulDoorActor()
 {
 	PrimaryActorTick.bCanEverTick = true;
+	SetActorTickEnabled(false);
 
 	FrameMesh = CreateDefaultSubobject<UStaticMeshComponent>(TEXT("FrameMesh"));
 	SetRootComponent(FrameMesh);
@@ -63,6 +64,7 @@ void ASoulDoorActor::Tick(float DeltaSeconds)
 		bOpened = true;
 
 		PortalTrigger->SetCollisionEnabled(ECollisionEnabled::QueryOnly);
+		SetActorTickEnabled(false);
 	}
 }
 
@@ -107,6 +109,8 @@ void ASoulDoorActor::StartOpen()
 
 	DoorStartRot = DoorMesh->GetRelativeRotation();
 	DoorTargetRot = DoorStartRot + FRotator(0, OpenYawDelta, 0);
+
+	SetActorTickEnabled(true);
 }
 
 void ASoulDoorActor::OnInteractorAutoFaceEnd()

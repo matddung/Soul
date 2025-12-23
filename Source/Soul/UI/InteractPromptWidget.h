@@ -2,7 +2,7 @@
 
 #include "CoreMinimal.h"
 #include "Blueprint/UserWidget.h"
-#include "InteractPromptWidget.generated.h"\
+#include "InteractPromptWidget.generated.h"
 
 UCLASS()
 class SOUL_API UInteractPromptWidget : public UUserWidget

@@ -85,16 +85,31 @@ ECharacterAnimState USoulAnimInstance::GetCharacterState() const
 
 void USoulAnimInstance::PlaySwordAttackMontage()
 {
+	if (!AttackMontage)
+	{
+		return;
+	}
+
 	Montage_Play(AttackMontage, 1);
 }
 
 void USoulAnimInstance::PlayGunAttackMontage()
 {
+	if (!GunFireMontage)
+	{
+		return;
+	}
+
 	Montage_Play(GunFireMontage, 1);
 }
 
 void USoulAnimInstance::JumpToAttackMontageSection(int32 NewSection)
 {
+	if (!AttackMontage)
+	{
+		return;
+	}
+
 	Montage_JumpToSection(GetAttackMontageSectionName(NewSection), AttackMontage);
 }
 
@@ -134,6 +149,11 @@ void USoulAnimInstance::AnimNotify_GunShotEnd()
 
 void USoulAnimInstance::PlayDodgeMontage()
 {
+	if (!DodgeMontage)
+	{
+		return;
+	}
+
 	Montage_Play(DodgeMontage, 1);
 }
 
@@ -154,6 +174,11 @@ void USoulAnimInstance::AnimNotify_DodgeEnd()
 
 void USoulAnimInstance::PlayHitReactMontage()
 {
+	if (!HitReactMontage)
+	{
+		return;
+	}
+
 	Montage_Play(HitReactMontage, 1);
 }
 
@@ -189,11 +214,21 @@ void USoulAnimInstance::PlayOpenDoorMontage()
 
 void USoulAnimInstance::PlayLadderTopMountMontage()
 {
+	if (!LadderTopMountMontage)
+	{
+		return;
+	}
+
 	Montage_Play(LadderTopMountMontage, 1);
 }
 
 void USoulAnimInstance::PlayLadderTopExitMontage()
 {
+	if (!LadderTopExitMontage)
+	{
+		return;
+	}
+
 	Montage_Play(LadderTopExitMontage, 1);
 }
 

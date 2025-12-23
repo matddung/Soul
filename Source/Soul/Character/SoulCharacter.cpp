@@ -1160,7 +1160,8 @@ void ASoulCharacter::UpdateTopMountMove(float DeltaSeconds)
 	}
 
 	TopMountMoveElapsed += DeltaSeconds;
-	const float Alpha = FMath::Clamp(TopMountMoveElapsed / TopMountMoveTime, 0, 1);
+	const float SafeDuration = FMath::Max(TopMountMoveTime, KINDA_SMALL_NUMBER);
+	const float Alpha = FMath::Clamp(TopMountMoveElapsed / SafeDuration, 0, 1);
 
 	const FVector NewLoc = FMath::Lerp(TopMountStartLoc, TopMountTargetLoc, Alpha);
 	const FRotator NewRot = FMath::Lerp(TopMountStartRot, TopMountTargetRot, Alpha);

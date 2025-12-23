@@ -39,19 +39,14 @@ protected:
 	UPROPERTY(VisibleAnywhere)
 	TObjectPtr<UBoxComponent> InteractBox;
 
-	UPROPERTY(VisibleInstanceOnly, Category = "Box")
-	bool bOpened = false;
-
-	UPROPERTY(VisibleInstanceOnly, Category = "Box")
-	float OpenDelaySeconds = 0.6;
-
-	FTimerHandle OpenTimerHandle;
-
 	UPROPERTY(EditAnywhere, Category = "Box")
 	TObjectPtr<UParticleSystem> OpenParticle;
 
 	UPROPERTY()
 	TObjectPtr<UParticleSystemComponent> SpawnedParticle;
+
+	UPROPERTY(VisibleInstanceOnly, Category = "Box")
+	bool bOpened = false;
 
 	UPROPERTY(VisibleInstanceOnly, Category = "Box")
 	float DisappearDelay = 3;

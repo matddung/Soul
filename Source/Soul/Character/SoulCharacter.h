@@ -38,8 +38,8 @@ class SOUL_API ASoulCharacter : public ACharacter
 public:
 	ASoulCharacter();
 
-	FORCEINLINE bool GetIsSprinting() { return bIsSprinting; }
-	FORCEINLINE bool GetIsAttacking() { return bIsAttacking; }
+	FORCEINLINE bool GetIsSprinting() const { return bIsSprinting; }
+	FORCEINLINE bool GetIsAttacking() const { return bIsAttacking; }
 	FORCEINLINE EWeaponType GetCurrentWeaponType() const { return CurrentWeaponType; }
 	FORCEINLINE bool GetIsAiming() const { return bIsAiming; }
 	FORCEINLINE bool GetIsDead() const { return bIsDead; }
@@ -182,7 +182,7 @@ protected:
 	UPROPERTY(EditAnywhere, Category = "Movement")
 	float GunAimWalkSpeed = 50;
 
-	UPROPERTY(EditAnywhere, Category = "Movement")
+	UPROPERTY(VisibleInstanceOnly, BlueprintReadOnly, Category = "Movement", meta = (AllowPrivateAccess = "true"))
 	bool bIsSprinting = false;
 
 	UPROPERTY()
@@ -251,22 +251,22 @@ protected:
 	UPROPERTY(EditAnywhere, Category = "Weapon|Gun")
 	float GunRange = 2000;
 
-	UPROPERTY(EditAnywhere, Category = "Movement")
+	UPROPERTY(VisibleInstanceOnly, BlueprintReadOnly, Category = "Movement", meta = (AllowPrivateAccess = "true"))
 	bool bIsDodging = false;
 
 	UPROPERTY(EditAnywhere, Category = "Movement")
 	float DodgeStrength = 400;
 
-	UPROPERTY(EditAnywhere, Category = "Movement")
+	UPROPERTY(VisibleInstanceOnly, BlueprintReadOnly, Category = "Movement", meta = (AllowPrivateAccess = "true"))
 	bool bDodgeInvincible = false;
 
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Components")
 	TObjectPtr<USoulCharacterStatComponent> StatComp;
 
-	UPROPERTY(EditAnywhere, Category = "Movement")
+	UPROPERTY(VisibleInstanceOnly, BlueprintReadOnly, Category = "Movement", meta = (AllowPrivateAccess = "true"))
 	bool bIsDead = false;
 
-	UPROPERTY(VisibleInstanceOnly, Category = "Movement")
+	UPROPERTY(VisibleInstanceOnly, BlueprintReadOnly, Category = "Movement", meta = (AllowPrivateAccess = "true"))
 	bool bIsHit = false;
 
 	FTimerHandle HitRecoveryTimer;
@@ -301,17 +301,14 @@ protected:
 	UPROPERTY(VisibleInstanceOnly, Category = "Ladder")
 	float LadderInput = 0;
 
-	UPROPERTY(EditAnywhere, Category = "Ladder")
+	UPROPERTY(EditDefaultsOnly, Category = "Ladder")
 	float LadderMoveSpeed = 90;
 
-	UPROPERTY(EditAnywhere, Category = "Ladder")
+	UPROPERTY(EditDefaultsOnly, Category = "Ladder")
 	float LadderAlignInterpSpeed = 12;
 
 	UPROPERTY(VisibleInstanceOnly, Category = "Ladder")
 	bool bLadderMounting = false;
-
-	UPROPERTY(EditAnywhere, Category = "Ladder")
-	float LadderInputTimeout = 0;
 
 	UPROPERTY(VisibleInstanceOnly, Category = "Ladder")
 	bool bTopMountMoving = false;
@@ -322,8 +319,8 @@ protected:
 	UPROPERTY(VisibleInstanceOnly, Category = "Ladder")
 	FRotator TopMountTargetRot;
 
-	UPROPERTY(EditAnywhere, Category = "Ladder")
-	float TopMountMoveTime = 0;
+	UPROPERTY(EditDefaultsOnly, Category = "Ladder")
+	float TopMountMoveTime = 1;
 
 	float TopMountMoveElapsed = 0;
 	FVector TopMountStartLoc;
