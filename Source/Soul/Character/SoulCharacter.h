@@ -72,6 +72,7 @@ protected:
 	void Look(const FInputActionValue& Value);
 	void SprintStart(const FInputActionValue& Value);
 	void SprintStop(const FInputActionValue& Value);
+	bool IsGrounded() const;
 	void Attack(const FInputActionValue& Value);
 	void SwapSword(const FInputActionValue& Value);
 	void SwapGun(const FInputActionValue& Value);

@@ -347,6 +347,16 @@ void ASoulCharacter::SprintStop(const FInputActionValue& Value)
 	UpdateMovementSpeed();
 }
 
+bool ASoulCharacter::IsGrounded() const
+{
+	if (const UCharacterMovementComponent* MoveComp = GetCharacterMovement())
+	{
+		return MoveComp->IsMovingOnGround();
+	}
+
+	return false;
+}
+
 void ASoulCharacter::SwapSword(const FInputActionValue& Value)
 {
 	if (!Value.Get<bool>())
@@ -472,6 +482,11 @@ void ASoulCharacter::Attack(const FInputActionValue& Value)
 		return;
 	}
 
+	if (!IsGrounded())
+	{
+		return;
+	}
+
 	switch (CurrentWeaponType)
 	{
 	case EWeaponType::Sword:
@@ -531,6 +546,11 @@ void ASoulCharacter::HandleGunAttack()
 	}
 
 	if (!AnimInstance)
+	{
+		return;
+	}
+
+	if (!IsGrounded())
 	{
 		return;
 	}
@@ -691,6 +711,11 @@ void ASoulCharacter::Dodge(const FInputActionValue& Value)
 	}
 
 	if (LocomotionState == ELocomotionState::Ladder)
+	{
+		return;
+	}
+
+	if (!IsGrounded())
 	{
 		return;
 	}
