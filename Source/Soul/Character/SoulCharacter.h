@@ -3,6 +3,7 @@
 #include "CoreMinimal.h"
 #include "GameFramework/Character.h"
 #include "InputActionValue.h"
+#include "../Common/WeaponTypes.h"
 #include "SoulCharacter.generated.h"
 
 class UInputAction;
@@ -11,17 +12,11 @@ class USpringArmComponent;
 class UCameraComponent;
 class USoulCharacterStatComponent;
 class ASoulLadderActor;
+class USoulWeaponComponent;
+class USoulWeaponData;
 
 DECLARE_MULTICAST_DELEGATE(FOnAttackEndDelegate);
 DECLARE_MULTICAST_DELEGATE(FOnAutoFaceEndDelegate);
-
-UENUM(BlueprintType)
-enum class EWeaponType : uint8
-{
-	Empty	UMETA(DisplayName = "Empty"),
-	Sword	UMETA(DisplayName = "Sword"),
-	Gun		UMETA(DisplayName = "Gun")
-};
 
 UENUM(BlueprintType)
 enum class ELocomotionState : uint8
@@ -59,6 +54,8 @@ public:
 
 	void BeginLadder(ASoulLadderActor* Ladder);
 	void EndLadder();
+
+	void GiveGunFromBox(bool bAutoEquip = false);
 
 protected:
 	virtual void BeginPlay() override;
@@ -238,7 +235,7 @@ protected:
 	float CameraInterpSpeed = 10;
 
 	UPROPERTY(VisibleInstanceOnly, Category = "Weapon")
-	float SwordAttackRange = 200;
+	float SwordAttackRange = 130;
 
 	UPROPERTY(VisibleInstanceOnly, Category = "Weapon")
 	float SwordAttackRadius = 50;
@@ -326,4 +323,13 @@ protected:
 	float TopMountMoveElapsed = 0;
 	FVector TopMountStartLoc;
 	FRotator TopMountStartRot;
+
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Weapon", meta = (AllowPrivateAccess = "true"))
+	TObjectPtr<USoulWeaponComponent> WeaponComp;
+
+	UPROPERTY(EditDefaultsOnly, Category = "Weapon")
+	TObjectPtr<USoulWeaponData> DefaultSwordData;
+
+	UPROPERTY(EditDefaultsOnly, Category = "Weapon")
+	TObjectPtr<class USoulWeaponData> DefaultGunData;
 };

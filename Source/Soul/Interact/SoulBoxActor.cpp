@@ -43,6 +43,7 @@ void ASoulBoxActor::Interact_Implementation(ASoulCharacter* Interactor)
 		Interactor->SetWeaponType(EWeaponType::Empty);
 		Interactor->FaceToActor(this);
 		Interactor->PlayOpenBoxAnim();
+		Interactor->GiveGunFromBox();
 	}
 
 	bOpened = true;

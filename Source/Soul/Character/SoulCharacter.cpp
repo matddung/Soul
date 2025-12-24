@@ -5,6 +5,7 @@
 #include "../UI/FloatingDamageActor.h"
 #include "../Interact/SoulInteractableInterface.h"
 #include "../Interact/SoulLadderActor.h"
+#include "SoulWeaponComponent.h"
 
 #include "EnhancedInputComponent.h"
 #include "EnhancedInputSubsystems.h"
@@ -46,6 +47,8 @@ ASoulCharacter::ASoulCharacter()
 	UpdateMovementSpeed();
 
 	StatComp = CreateDefaultSubobject<USoulCharacterStatComponent>(TEXT("StatComponent"));
+
+	WeaponComp = CreateDefaultSubobject<USoulWeaponComponent>(TEXT("WeaponComp"));
 }
 
 void ASoulCharacter::BeginPlay()
@@ -69,6 +72,13 @@ void ASoulCharacter::BeginPlay()
 		DefaultArmLength = CameraBoom->TargetArmLength;
 		DefaultSocketOffset = CameraBoom->SocketOffset;
 	}
+
+	if (WeaponComp && DefaultSwordData)
+	{
+		WeaponComp->GiveWeapon(DefaultSwordData);
+	}
+
+	CurrentWeaponType = EWeaponType::Empty;
 }
 
 void ASoulCharacter::PostInitializeComponents()
@@ -371,9 +381,12 @@ void ASoulCharacter::SwapSword(const FInputActionValue& Value)
 
 	StopAiming();
 
-	CurrentWeaponType = EWeaponType::Sword;
-	bIsAiming = false;
-	UpdateMovementSpeed();
+	if (WeaponComp && WeaponComp->EquipWeapon(EWeaponType::Sword))
+	{
+		CurrentWeaponType = EWeaponType::Sword;
+		bIsAiming = false;
+		UpdateMovementSpeed();
+	}
 }
 
 void ASoulCharacter::SwapGun(const FInputActionValue& Value)
@@ -388,9 +401,12 @@ void ASoulCharacter::SwapGun(const FInputActionValue& Value)
 		return;
 	}
 
-	CurrentWeaponType = EWeaponType::Gun;
-	bIsSprinting = false;
-	UpdateMovementSpeed();
+	if (WeaponComp && WeaponComp->EquipWeapon(EWeaponType::Gun))
+	{
+		CurrentWeaponType = EWeaponType::Gun;
+		bIsAiming = false;
+		UpdateMovementSpeed();
+	}
 }
 
 void ASoulCharacter::SwapEmpty(const FInputActionValue& Value)
@@ -406,6 +422,11 @@ void ASoulCharacter::SwapEmpty(const FInputActionValue& Value)
 	}
 
 	StopAiming();
+
+	if (WeaponComp)
+	{
+		WeaponComp->EquipWeapon(EWeaponType::Empty);
+	}
 
 	CurrentWeaponType = EWeaponType::Empty;
 	UpdateMovementSpeed();
@@ -1209,5 +1230,31 @@ void ASoulCharacter::UpdateTopMountMove(float DeltaSeconds)
 		{
 			AnimInstance->PlayLadderTopMountMontage();
 		}
+	}
+}
+
+void ASoulCharacter::GiveGunFromBox(bool bAutoEquip)
+{
+	if (!WeaponComp || !DefaultGunData)
+	{
+		UE_LOG(LogTemp, Warning, TEXT("GiveGunFromBox failed: WeaponComp or DefaultGunData is null"));
+		return;
+	}
+
+	if(!WeaponComp->HasWeapon(EWeaponType::Gun))
+	{
+		WeaponComp->GiveWeapon(DefaultGunData);
+		UE_LOG(LogTemp, Log, TEXT("Gun acquired! (not equipped)"));
+	}
+
+	if (bAutoEquip)
+	{
+		StopAiming();
+		bIsSprinting = false;
+
+		WeaponComp->EquipWeapon(EWeaponType::Gun);
+		CurrentWeaponType = EWeaponType::Gun;
+
+		UpdateMovementSpeed();
 	}
 }
