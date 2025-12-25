@@ -329,6 +329,11 @@ void ASoulCharacter::UpdateMovementSpeed()
 	GetCharacterMovement()->MaxWalkSpeed = TargetSpeed;
 }
 
+bool ASoulCharacter::IsAnimationBlockingActions() const
+{
+	return AnimInstance && AnimInstance->IsAnyMontagePlaying();
+}
+
 void ASoulCharacter::SprintStart(const FInputActionValue& Value)
 {
 	if (LocomotionState == ELocomotionState::Ladder)
@@ -341,8 +346,14 @@ void ASoulCharacter::SprintStart(const FInputActionValue& Value)
 		return;
 	}
 
+	if (IsAnimationBlockingActions())
+	{
+		return;
+	}
+
+	StopAiming();
+
 	bIsSprinting = true;
-	bIsAiming = false;
 	UpdateMovementSpeed();
 }
 
@@ -379,6 +390,11 @@ void ASoulCharacter::SwapSword(const FInputActionValue& Value)
 		return;
 	}
 
+	if (IsAnimationBlockingActions())
+	{
+		return;
+	}
+
 	StopAiming();
 
 	if (WeaponComp && WeaponComp->EquipWeapon(EWeaponType::Sword))
@@ -401,6 +417,11 @@ void ASoulCharacter::SwapGun(const FInputActionValue& Value)
 		return;
 	}
 
+	if (IsAnimationBlockingActions())
+	{
+		return;
+	}
+
 	if (WeaponComp && WeaponComp->EquipWeapon(EWeaponType::Gun))
 	{
 		CurrentWeaponType = EWeaponType::Gun;
@@ -417,6 +438,11 @@ void ASoulCharacter::SwapEmpty(const FInputActionValue& Value)
 	}
 
 	if (LocomotionState == ELocomotionState::Ladder)
+	{
+		return;
+	}
+
+	if (IsAnimationBlockingActions())
 	{
 		return;
 	}
@@ -445,6 +471,11 @@ void ASoulCharacter::GunAimStart(const FInputActionValue& Value)
 	}
 
 	if (CurrentWeaponType != EWeaponType::Gun)
+	{
+		return;
+	}
+
+	if (IsAnimationBlockingActions())
 	{
 		return;
 	}
@@ -504,6 +535,11 @@ void ASoulCharacter::Attack(const FInputActionValue& Value)
 	}
 
 	if (!IsGrounded())
+	{
+		return;
+	}
+
+	if (IsAnimationBlockingActions() && !bIsAttacking)
 	{
 		return;
 	}
@@ -716,6 +752,11 @@ void ASoulCharacter::Dodge(const FInputActionValue& Value)
 		return;
 	}
 
+	if (IsAnimationBlockingActions())
+	{
+		return;
+	}
+
 	if (CurrentWeaponType == EWeaponType::Gun)
 	{
 		return;
@@ -849,6 +890,11 @@ void ASoulCharacter::Interact(const FInputActionValue& Value)
 	}
 
 	if (!CurrentInteractTarget.IsValid())
+	{
+		return;
+	}
+
+	if (IsAnimationBlockingActions())
 	{
 		return;
 	}
@@ -996,6 +1042,20 @@ void ASoulCharacter::SetWeaponType(EWeaponType NewType)
 	}
 
 	CurrentWeaponType = NewType;
+
+	if (WeaponComp)
+	{
+		WeaponComp->EquipWeapon(NewType);
+	}
+
+	if (NewType != EWeaponType::Gun)
+	{
+		StopAiming();
+	}
+	else
+	{
+		UpdateMovementSpeed();
+	}
 }
 
 void ASoulCharacter::PlayOpenDoorAnim()

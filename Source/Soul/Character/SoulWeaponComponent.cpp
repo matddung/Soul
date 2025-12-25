@@ -66,6 +66,14 @@ void USoulWeaponComponent::ApplyVisual(USoulWeaponData* Data)
     ACharacter* OwnerChar = Cast<ACharacter>(GetOwner());
     if (!OwnerChar || !OwnerChar->GetMesh()) return;
 
+    UE_LOG(LogTemp, Warning, TEXT("[ApplyVisual] Type=%d Mesh=%s Socket=%s Owner=%s SkelMesh=%s"),
+        (int32)Data->WeaponType,
+        Data->StaticMesh ? *Data->StaticMesh->GetName() : TEXT("NULL"),
+        *Data->AttachSocketName.ToString(),
+        *GetOwner()->GetName(),
+        OwnerChar && OwnerChar->GetMesh() ? *OwnerChar->GetMesh()->GetName() : TEXT("NULL")
+    );
+
     EquippedStaticMeshComp->SetStaticMesh(Data->StaticMesh);
 
     EquippedStaticMeshComp->AttachToComponent(

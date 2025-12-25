@@ -83,6 +83,7 @@ protected:
 	void OnGunCanReShot();
 	void OnGunShotEnd();
 	void UpdateMovementSpeed();
+	bool IsAnimationBlockingActions() const;
 
 	UFUNCTION()
 	void OnAttackMontageEnded(UAnimMontage* Montage, bool bInterrupted);
