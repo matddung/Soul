@@ -7,8 +7,6 @@
 #include "../Interact/SoulLadderActor.h"
 #include "SoulWeaponComponent.h"
 
-#include "EnhancedInputComponent.h"
-#include "EnhancedInputSubsystems.h"
 #include "Camera/CameraComponent.h"
 #include "Components/CapsuleComponent.h"
 #include "GameFramework/CharacterMovementComponent.h"
@@ -54,13 +52,6 @@ ASoulCharacter::ASoulCharacter()
 void ASoulCharacter::BeginPlay()
 {
 	Super::BeginPlay();
-
-	if (APlayerController* PC = Cast<APlayerController>(GetController()))
-	{
-		UEnhancedInputLocalPlayerSubsystem* Subsystem = ULocalPlayer::GetSubsystem<UEnhancedInputLocalPlayerSubsystem>(PC->GetLocalPlayer());
-
-		Subsystem->AddMappingContext(DefaultMappingContext, 0);
-	}
 
 	if (FollowCamera)
 	{
@@ -145,35 +136,6 @@ void ASoulCharacter::PostInitializeComponents()
 			EndLadder();
 			bLadderMounting = false;
 		});
-}
-
-void ASoulCharacter::SetupPlayerInputComponent(UInputComponent* PlayerInputComponent)
-{
-	Super::SetupPlayerInputComponent(PlayerInputComponent);
-
-	if (UEnhancedInputComponent* EnhancedInputComponent = Cast<UEnhancedInputComponent>(PlayerInputComponent))
-	{
-		EnhancedInputComponent->BindAction(MoveAction, ETriggerEvent::Triggered, this, &ASoulCharacter::Move);
-		EnhancedInputComponent->BindAction(LookAction, ETriggerEvent::Triggered, this, &ASoulCharacter::Look);
-
-		EnhancedInputComponent->BindAction(SprintAction, ETriggerEvent::Started, this, &ASoulCharacter::SprintStart);
-		EnhancedInputComponent->BindAction(SprintAction, ETriggerEvent::Completed, this, &ASoulCharacter::SprintStop);
-
-		EnhancedInputComponent->BindAction(AttackAction, ETriggerEvent::Started, this, &ASoulCharacter::Attack);
-
-		EnhancedInputComponent->BindAction(SwapSwordAction, ETriggerEvent::Started, this, &ASoulCharacter::SwapSword);
-		EnhancedInputComponent->BindAction(SwapGunAction, ETriggerEvent::Started, this, &ASoulCharacter::SwapGun);
-		EnhancedInputComponent->BindAction(SwapEmptyAction, ETriggerEvent::Started, this, &ASoulCharacter::SwapEmpty);
-		EnhancedInputComponent->BindAction(GunAimAction, ETriggerEvent::Started, this, &ASoulCharacter::GunAimStart);
-		EnhancedInputComponent->BindAction(GunAimAction, ETriggerEvent::Completed, this, &ASoulCharacter::GunAimStop);
-		
-		EnhancedInputComponent->BindAction(SwordDodgeAction, ETriggerEvent::Started, this, &ASoulCharacter::Dodge);
-
-		EnhancedInputComponent->BindAction(InteractAction, ETriggerEvent::Started, this, &ASoulCharacter::Interact);
-
-		EnhancedInputComponent->BindAction(MoveAction, ETriggerEvent::Completed, this, &ASoulCharacter::MoveCompleted);
-		EnhancedInputComponent->BindAction(MoveAction, ETriggerEvent::Canceled, this, &ASoulCharacter::MoveCompleted);
-	}
 }
 
 void ASoulCharacter::Tick(float DeltaSeconds)

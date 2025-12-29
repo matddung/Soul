@@ -6,8 +6,6 @@
 #include "../Common/WeaponTypes.h"
 #include "SoulCharacter.generated.h"
 
-class UInputAction;
-class UInputMappingContext;
 class USpringArmComponent;
 class UCameraComponent;
 class USoulCharacterStatComponent;
@@ -31,6 +29,8 @@ class SOUL_API ASoulCharacter : public ACharacter
 	GENERATED_BODY()
 
 public:
+	friend class ASoulPlayerController;
+
 	ASoulCharacter();
 
 	FORCEINLINE bool GetIsSprinting() const { return bIsSprinting; }
@@ -60,7 +60,6 @@ public:
 protected:
 	virtual void BeginPlay() override;
 	virtual void PostInitializeComponents() override;
-	virtual void SetupPlayerInputComponent(class UInputComponent* PlayerInputComponent) override;
 	virtual void Tick(float DeltaSeconds) override;
 	virtual float TakeDamage(float DamageAmount, FDamageEvent const& DamageEvent, AController* EventInstigator, AActor* DamageCauser) override;
 	virtual void Reset() override;
@@ -123,39 +122,6 @@ public:
 
 protected:
 	FOnAttackEndDelegate OnAttackEnd;
-
-	UPROPERTY(EditAnywhere,Category="Input")
-	TObjectPtr<UInputAction> MoveAction;
-
-	UPROPERTY(EditAnywhere, Category = "Input")
-	TObjectPtr<UInputAction> LookAction;
-
-	UPROPERTY(EditAnywhere, Category = "Input")
-	TObjectPtr<UInputAction> SprintAction;
-
-	UPROPERTY(EditAnywhere, Category = "Input")
-	TObjectPtr<UInputAction> AttackAction;
-
-	UPROPERTY(EditAnywhere, Category = "Input")
-	TObjectPtr<UInputAction> SwapSwordAction;
-
-	UPROPERTY(EditAnywhere, Category = "Input")
-	TObjectPtr<UInputAction> SwapGunAction;
-
-	UPROPERTY(EditAnywhere, Category = "Input")
-	TObjectPtr<UInputAction> SwapEmptyAction;
-
-	UPROPERTY(EditAnywhere, Category = "Input")
-	TObjectPtr<UInputAction> GunAimAction;
-
-	UPROPERTY(EditAnywhere, Category = "Input")
-	TObjectPtr<UInputAction> SwordDodgeAction;
-
-	UPROPERTY(EditAnywhere, Category = "Input")
-	TObjectPtr<UInputAction> InteractAction;
-
-	UPROPERTY(EditAnywhere, Category = "Input")
-	TObjectPtr<UInputMappingContext> DefaultMappingContext;
 
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Components", meta = (AllowPrivateAccess = "true"))
 	TObjectPtr<USpringArmComponent> CameraBoom;
