@@ -1,4 +1,5 @@
 #include "PauseMenuWidget.h"
+#include "../Game/SoulPlayerController.h"
 
 #include "Components/WidgetSwitcher.h"
 #include "Components/Button.h"
@@ -161,4 +162,9 @@ void UPauseMenuWidget::OnMasterVolumeChanged(float Value)
 	CurrentMasterVolume = SafeValue;
 
 	UGameplayStatics::SetSoundMixClassOverride(this, MasterSoundMix, MasterSoundClass, CurrentMasterVolume, 1.0f, 0.0f, true);
+
+	if (ASoulPlayerController* SoulPC = Cast<ASoulPlayerController>(GetOwningPlayer()))
+	{
+		SoulPC->SaveGameSettings(CurrentMasterVolume);
+	}
 }

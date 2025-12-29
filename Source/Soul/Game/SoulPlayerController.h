@@ -15,6 +15,7 @@ class USoundBase;
 class UAudioComponent;
 class USoundMix;
 class USoundClass;
+class UGameSettingSaveData;
 
 UCLASS()
 class SOUL_API ASoulPlayerController : public APlayerController
@@ -29,6 +30,8 @@ public:
     void OnCrosshairReset();
 
     void ShowInteractPrompt(bool bShow, const FText& Text);
+
+    void SaveGameSettings(float InMasterVolume);
 
 protected:
     virtual void BeginPlay() override;
@@ -64,6 +67,8 @@ protected:
 
     void PlayBackgroundMusic();
     void StopBackgroundMusic();
+
+    void LoadGameSettings();
 
 protected:
     UPROPERTY(EditDefaultsOnly, Category = "UI")
@@ -132,9 +137,11 @@ protected:
     UPROPERTY(EditDefaultsOnly, Category = "Audio", meta = (ClampMin = "0.0", ClampMax = "1.0"))
     float InitialMasterVolume = 1.0f;
 
-
     UPROPERTY(Transient)
     TObjectPtr<UAudioComponent> BackgroundMusicComponent;
+
+    UPROPERTY()
+    TObjectPtr<UGameSettingSaveData> GameSettingSaveData;
 
 private:
     bool bMappingContextAdded = false;

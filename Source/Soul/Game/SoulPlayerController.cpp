@@ -3,6 +3,7 @@
 #include "../UI/InteractPromptWidget.h"
 #include "../Character/SoulCharacter.h"
 #include "../UI/PauseMenuWidget.h"
+#include "GameSettingSaveData.h"
 
 #include "Blueprint/UserWidget.h"
 #include "EnhancedInputComponent.h"
@@ -18,6 +19,7 @@ void ASoulPlayerController::BeginPlay()
     Super::BeginPlay();
 
     AddDefaultMappingContext();
+    LoadGameSettings();
 
     if (CrosshairWidgetClass)
     {
@@ -355,6 +357,40 @@ void ASoulPlayerController::ClosePauseMenu()
     SetInputMode(InputMode);
 
     bPauseMenuOpen = false;
+}
+
+void ASoulPlayerController::SaveGameSettings(float InMasterVolume)
+{
+    if (!GameSettingSaveData)
+    {
+        GameSettingSaveData = Cast<UGameSettingSaveData>(UGameplayStatics::CreateSaveGameObject(UGameSettingSaveData::StaticClass()));
+    }
+
+    if (GameSettingSaveData)
+    {
+        GameSettingSaveData->MasterVolume = FMath::Clamp(InMasterVolume, 0.0f, 1.0f);
+        UGameplayStatics::SaveGameToSlot(GameSettingSaveData, UGameSettingSaveData::GetSlotName(), 0);
+    }
+}
+
+void ASoulPlayerController::LoadGameSettings()
+{
+    const FString SlotName = UGameSettingSaveData::GetSlotName();
+
+    if (UGameplayStatics::DoesSaveGameExist(SlotName, 0))
+    {
+        GameSettingSaveData = Cast<UGameSettingSaveData>(UGameplayStatics::LoadGameFromSlot(SlotName, 0));
+    }
+
+    if (!GameSettingSaveData)
+    {
+        GameSettingSaveData = Cast<UGameSettingSaveData>(UGameplayStatics::CreateSaveGameObject(UGameSettingSaveData::StaticClass()));
+    }
+
+    if (GameSettingSaveData)
+    {
+        InitialMasterVolume = FMath::Clamp(GameSettingSaveData->MasterVolume, 0.0f, 1.0f);
+    }
 }
 
 void ASoulPlayerController::PlayBackgroundMusic()

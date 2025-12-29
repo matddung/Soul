@@ -12,4 +12,7 @@ class SOUL_API UGameSettingSaveData : public USaveGame
 public:
 	UPROPERTY(BlueprintReadWrite)
 	float MasterVolume = 1.0f;
+
+public:
+	static FString GetSlotName();
 };
