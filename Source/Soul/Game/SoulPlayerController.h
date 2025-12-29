@@ -13,6 +13,8 @@ class ASoulCharacter;
 class UPauseMenuWidget;
 class USoundBase;
 class UAudioComponent;
+class USoundMix;
+class USoundClass;
 
 UCLASS()
 class SOUL_API ASoulPlayerController : public APlayerController
@@ -120,6 +122,16 @@ protected:
 
     UPROPERTY(EditDefaultsOnly, Category = "Audio", meta = (ClampMin = "0.0"))
     float BackgroundMusicVolume = 1.0f;
+
+    UPROPERTY(EditDefaultsOnly, Category = "Audio")
+    TObjectPtr<USoundMix> MasterSoundMix;
+
+    UPROPERTY(EditDefaultsOnly, Category = "Audio")
+    TObjectPtr<USoundClass> MasterSoundClass;
+
+    UPROPERTY(EditDefaultsOnly, Category = "Audio", meta = (ClampMin = "0.0", ClampMax = "1.0"))
+    float InitialMasterVolume = 1.0f;
+
 
     UPROPERTY(Transient)
     TObjectPtr<UAudioComponent> BackgroundMusicComponent;

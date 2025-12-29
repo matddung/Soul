@@ -36,6 +36,36 @@ public:
 	UFUNCTION(BlueprintCallable, Category = "Pause")
 	EPausePage GetCurrentPage() const;
 
+	void SetMasterAudioConfig(USoundMix* InSoundMix, USoundClass* InSoundClass, float InVolume);
+
+protected:
+	void SetPage(EPausePage Page);
+
+	UFUNCTION()
+	void OnResumeClicked();
+
+	UFUNCTION()
+	void OnSettingsClicked();
+
+	UFUNCTION()
+	void OnQuitClicked();
+
+	UFUNCTION()
+	void OnBackFromSettingsClicked();
+
+	UFUNCTION()
+	void OnQuitYesClicked();
+
+	UFUNCTION()
+	void OnQuitNoClicked();
+
+	UFUNCTION()
+	void OnMasterVolumeChanged(float Value);
+
+public:
+	UPROPERTY(EditDefaultsOnly, Category = "Audio", meta = (ClampMin = "0.0", ClampMax = "1.0"))
+	float DefaultMasterVolume = 1.0f;
+
 protected:
 	virtual void NativeOnInitialized() override;
 
@@ -69,27 +99,6 @@ protected:
 	UPROPERTY(EditDefaultsOnly, Category = "Audio")
 	USoundClass* MasterSoundClass;
 
-private:
-	void SetPage(EPausePage Page);
+	float CurrentMasterVolume = 1.0f;
 
-	UFUNCTION()
-	void OnResumeClicked();
-
-	UFUNCTION()
-	void OnSettingsClicked();
-
-	UFUNCTION()
-	void OnQuitClicked();
-
-	UFUNCTION()
-	void OnBackFromSettingsClicked();
-
-	UFUNCTION()
-	void OnQuitYesClicked();
-
-	UFUNCTION()
-	void OnQuitNoClicked();
-
-	UFUNCTION()
-	void OnMasterVolumeChanged(float Value);
 };

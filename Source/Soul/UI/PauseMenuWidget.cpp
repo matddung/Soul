@@ -45,9 +45,24 @@ void UPauseMenuWidget::NativeOnInitialized()
 	if (Slider_MasterVolume)
 	{
 		Slider_MasterVolume->OnValueChanged.AddDynamic(this, &UPauseMenuWidget::OnMasterVolumeChanged);
+		Slider_MasterVolume->SetValue(CurrentMasterVolume);
 	}
 
 	ShowMain();
+}
+
+void UPauseMenuWidget::SetMasterAudioConfig(USoundMix* InSoundMix, USoundClass* InSoundClass, float InVolume)
+{
+	MasterSoundMix = InSoundMix;
+	MasterSoundClass = InSoundClass;
+	CurrentMasterVolume = FMath::Clamp(InVolume, 0.0f, 1.0f);
+
+	if (Slider_MasterVolume)
+	{
+		Slider_MasterVolume->SetValue(CurrentMasterVolume);
+	}
+
+	OnMasterVolumeChanged(CurrentMasterVolume);
 }
 
 void UPauseMenuWidget::SetPage(EPausePage Page)
@@ -142,6 +157,8 @@ void UPauseMenuWidget::OnMasterVolumeChanged(float Value)
 {
 	if (!MasterSoundMix || !MasterSoundClass) return;
 
-	UGameplayStatics::SetSoundMixClassOverride(this, MasterSoundMix, MasterSoundClass, Value, 1.0f, 0.0f, true);
-	UGameplayStatics::PushSoundMixModifier(this, MasterSoundMix);
+	const float SafeValue = FMath::Clamp(Value, 0.001f, 1.0f);
+	CurrentMasterVolume = SafeValue;
+
+	UGameplayStatics::SetSoundMixClassOverride(this, MasterSoundMix, MasterSoundClass, CurrentMasterVolume, 1.0f, 0.0f, true);
 }

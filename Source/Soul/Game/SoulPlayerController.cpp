@@ -9,6 +9,9 @@
 #include "EnhancedInputSubsystems.h"
 #include "Components/AudioComponent.h"
 #include "Sound/SoundBase.h"
+#include "Kismet/GameplayStatics.h"
+#include "Sound/SoundMix.h"
+#include "Sound/SoundClass.h"
 
 void ASoulPlayerController::BeginPlay()
 {
@@ -27,6 +30,12 @@ void ASoulPlayerController::BeginPlay()
     }
 
     bShowMouseCursor = false;
+
+    if (MasterSoundMix && MasterSoundClass)
+    {
+        UGameplayStatics::SetSoundMixClassOverride(this, MasterSoundMix, MasterSoundClass, InitialMasterVolume, 1.0f, 0.0f, true);
+        UGameplayStatics::PushSoundMixModifier(this, MasterSoundMix);
+    }
 
     PlayBackgroundMusic();
 }
@@ -309,6 +318,11 @@ void ASoulPlayerController::OpenPauseMenu()
     if (!PauseMenuInstance)
     {
         PauseMenuInstance = CreateWidget<UPauseMenuWidget>(this, PauseMenuClass);
+
+        if (PauseMenuInstance)
+        {
+            PauseMenuInstance->SetMasterAudioConfig(MasterSoundMix, MasterSoundClass, MasterSoundMix ? InitialMasterVolume : PauseMenuInstance->DefaultMasterVolume);
+        }
     }
 
     if (PauseMenuInstance && !PauseMenuInstance->IsInViewport())
