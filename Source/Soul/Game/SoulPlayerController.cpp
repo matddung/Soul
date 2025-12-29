@@ -2,14 +2,17 @@
 #include "../UI/CrosshairWidget.h"
 #include "../UI/InteractPromptWidget.h"
 #include "../Character/SoulCharacter.h"
+#include "../UI/PauseMenuWidget.h"
 
 #include "Blueprint/UserWidget.h"
 #include "EnhancedInputComponent.h"
 #include "EnhancedInputSubsystems.h"
+#include "Components/AudioComponent.h"
+#include "Sound/SoundBase.h"
 
 void ASoulPlayerController::BeginPlay()
 {
-	Super::BeginPlay();
+    Super::BeginPlay();
 
     AddDefaultMappingContext();
 
@@ -22,6 +25,10 @@ void ASoulPlayerController::BeginPlay()
             CrosshairWidget->SetVisibility(ESlateVisibility::Hidden);
         }
     }
+
+    bShowMouseCursor = false;
+
+    PlayBackgroundMusic();
 }
 
 void ASoulPlayerController::SetupInputComponent()
@@ -43,6 +50,13 @@ void ASoulPlayerController::OnUnPossess()
     Super::OnUnPossess();
 
     RemoveDefaultMappingContext();
+}
+
+void ASoulPlayerController::EndPlay(const EEndPlayReason::Type EndPlayReason)
+{
+    StopBackgroundMusic();
+
+    Super::EndPlay(EndPlayReason);
 }
 
 void ASoulPlayerController::ShowCrosshair(bool bShow)
@@ -158,6 +172,8 @@ void ASoulPlayerController::BindInputActions()
 
         EnhancedInputComponent->BindAction(MoveAction, ETriggerEvent::Completed, this, &ASoulPlayerController::HandleMoveCompleted);
         EnhancedInputComponent->BindAction(MoveAction, ETriggerEvent::Canceled, this, &ASoulPlayerController::HandleMoveCompleted);
+
+        EnhancedInputComponent->BindAction(PauseMenuAction, ETriggerEvent::Started, this, &ASoulPlayerController::TogglePauseMenu);
     }
 }
 
@@ -267,5 +283,94 @@ void ASoulPlayerController::HandleMoveCompleted(const FInputActionValue& Value)
     if (ASoulCharacter* SoulCharacter = GetSoulCharacter())
     {
         SoulCharacter->MoveCompleted(Value);
+    }
+}
+
+void ASoulPlayerController::TogglePauseMenu()
+{
+    if (bPauseMenuOpen)
+    {
+        ClosePauseMenu();
+    }
+    else
+    {
+        OpenPauseMenu();
+    }
+}
+
+void ASoulPlayerController::OpenPauseMenu()
+{
+    if (!PauseMenuClass)
+    {
+        UE_LOG(LogTemp, Warning, TEXT("PauseMenuClass is not set on PlayerController."));
+        return;
+    }
+
+    if (!PauseMenuInstance)
+    {
+        PauseMenuInstance = CreateWidget<UPauseMenuWidget>(this, PauseMenuClass);
+    }
+
+    if (PauseMenuInstance && !PauseMenuInstance->IsInViewport())
+    {
+        PauseMenuInstance->AddToViewport(100);
+    }
+
+    SetPause(true);
+    bShowMouseCursor = true;
+
+    FInputModeUIOnly InputMode;
+    InputMode.SetLockMouseToViewportBehavior(EMouseLockMode::DoNotLock);
+    InputMode.SetWidgetToFocus(PauseMenuInstance ? PauseMenuInstance->TakeWidget() : TSharedPtr<SWidget>());
+    SetInputMode(InputMode);
+
+    bPauseMenuOpen = true;
+}
+
+void ASoulPlayerController::ClosePauseMenu()
+{
+    if (PauseMenuInstance && PauseMenuInstance->IsInViewport())
+    {
+        PauseMenuInstance->RemoveFromParent();
+    }
+
+    SetPause(false);
+    bShowMouseCursor = false;
+
+    FInputModeGameOnly InputMode;
+    SetInputMode(InputMode);
+
+    bPauseMenuOpen = false;
+}
+
+void ASoulPlayerController::PlayBackgroundMusic()
+{
+    if (!IsLocalController() || !BackgroundMusic)
+    {
+        return;
+    }
+
+    if (!BackgroundMusicComponent)
+    {
+        BackgroundMusicComponent = NewObject<UAudioComponent>(this);
+        if (!BackgroundMusicComponent)
+        {
+            return;
+        }
+
+        BackgroundMusicComponent->bAutoActivate = false;
+        BackgroundMusicComponent->bIsUISound = true;
+        BackgroundMusicComponent->RegisterComponent();
+    }
+
+    BackgroundMusicComponent->SetSound(BackgroundMusic);
+    BackgroundMusicComponent->Play();
+}
+
+void ASoulPlayerController::StopBackgroundMusic()
+{
+    if (BackgroundMusicComponent)
+    {
+        BackgroundMusicComponent->Stop();
     }
 }

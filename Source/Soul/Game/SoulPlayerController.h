@@ -5,45 +5,76 @@
 #include "GameFramework/PlayerController.h"
 #include "SoulPlayerController.generated.h"
 
-class UUserWidget;
 class UCrosshairWidget;
 class UInteractPromptWidget;
 class UInputAction;
 class UInputMappingContext;
 class ASoulCharacter;
+class UPauseMenuWidget;
+class USoundBase;
+class UAudioComponent;
 
 UCLASS()
 class SOUL_API ASoulPlayerController : public APlayerController
 {
-	GENERATED_BODY()
+    GENERATED_BODY()
 
 public:
-	UFUNCTION(BlueprintCallable)
-	void ShowCrosshair(bool bShow);
+    UFUNCTION(BlueprintCallable)
+    void ShowCrosshair(bool bShow);
 
-	void OnCrosshairShot();
-	void OnCrosshairReset();
+    void OnCrosshairShot();
+    void OnCrosshairReset();
 
-	void ShowInteractPrompt(bool bShow, const FText& Text);
+    void ShowInteractPrompt(bool bShow, const FText& Text);
 
 protected:
-	virtual void BeginPlay() override;
-	virtual void SetupInputComponent() override;
-	virtual void OnPossess(APawn* InPawn) override;
-	virtual void OnUnPossess() override;
-	
+    virtual void BeginPlay() override;
+    virtual void SetupInputComponent() override;
+    virtual void OnPossess(APawn* InPawn) override;
+    virtual void OnUnPossess() override;
+    virtual void EndPlay(const EEndPlayReason::Type EndPlayReason) override;
+
+    void AddDefaultMappingContext();
+    void RemoveDefaultMappingContext();
+    void BindInputActions();
+    ASoulCharacter* GetSoulCharacter() const;
+
+    void HandleMove(const FInputActionValue& Value);
+    void HandleLook(const FInputActionValue& Value);
+    void HandleSprintStart(const FInputActionValue& Value);
+    void HandleSprintStop(const FInputActionValue& Value);
+    void HandleAttack(const FInputActionValue& Value);
+    void HandleSwapSword(const FInputActionValue& Value);
+    void HandleSwapGun(const FInputActionValue& Value);
+    void HandleSwapEmpty(const FInputActionValue& Value);
+    void HandleGunAimStart(const FInputActionValue& Value);
+    void HandleGunAimStop(const FInputActionValue& Value);
+    void HandleDodge(const FInputActionValue& Value);
+    void HandleInteract(const FInputActionValue& Value);
+    void HandleMoveCompleted(const FInputActionValue& Value);
+
+    UFUNCTION()
+    void TogglePauseMenu();
+
+    void OpenPauseMenu();
+    void ClosePauseMenu();
+
+    void PlayBackgroundMusic();
+    void StopBackgroundMusic();
+
 protected:
-	UPROPERTY(EditDefaultsOnly, Category = "UI")
-	TSubclassOf<UCrosshairWidget> CrosshairWidgetClass;
+    UPROPERTY(EditDefaultsOnly, Category = "UI")
+    TSubclassOf<UCrosshairWidget> CrosshairWidgetClass;
 
-	UPROPERTY()
-	TObjectPtr<UCrosshairWidget> CrosshairWidget;
+    UPROPERTY()
+    TObjectPtr<UCrosshairWidget> CrosshairWidget;
 
-	UPROPERTY(EditDefaultsOnly, Category = "UI")
-	TSubclassOf<UInteractPromptWidget> InteractPromptClass;
+    UPROPERTY(EditDefaultsOnly, Category = "UI")
+    TSubclassOf<UInteractPromptWidget> InteractPromptClass;
 
-	UPROPERTY()
-	TObjectPtr<UInteractPromptWidget> InteractPromptWidget;
+    UPROPERTY()
+    TObjectPtr<UInteractPromptWidget> InteractPromptWidget;
 
     UPROPERTY(EditAnywhere, Category = "Input")
     TObjectPtr<UInputAction> MoveAction;
@@ -76,27 +107,27 @@ protected:
     TObjectPtr<UInputAction> InteractAction;
 
     UPROPERTY(EditAnywhere, Category = "Input")
+    TObjectPtr<UInputAction> PauseMenuAction;
+
+    UPROPERTY(EditAnywhere, Category = "Input")
     TObjectPtr<UInputMappingContext> DefaultMappingContext;
 
+    UPROPERTY(EditDefaultsOnly, Category = "UI")
+    TSubclassOf<UPauseMenuWidget> PauseMenuClass;
+
+    UPROPERTY(EditDefaultsOnly, Category = "Audio")
+    TObjectPtr<USoundBase> BackgroundMusic;
+
+    UPROPERTY(EditDefaultsOnly, Category = "Audio", meta = (ClampMin = "0.0"))
+    float BackgroundMusicVolume = 1.0f;
+
+    UPROPERTY(Transient)
+    TObjectPtr<UAudioComponent> BackgroundMusicComponent;
+
 private:
-    void AddDefaultMappingContext();
-    void RemoveDefaultMappingContext();
-    void BindInputActions();
-    ASoulCharacter* GetSoulCharacter() const;
-
-    void HandleMove(const FInputActionValue& Value);
-    void HandleLook(const FInputActionValue& Value);
-    void HandleSprintStart(const FInputActionValue& Value);
-    void HandleSprintStop(const FInputActionValue& Value);
-    void HandleAttack(const FInputActionValue& Value);
-    void HandleSwapSword(const FInputActionValue& Value);
-    void HandleSwapGun(const FInputActionValue& Value);
-    void HandleSwapEmpty(const FInputActionValue& Value);
-    void HandleGunAimStart(const FInputActionValue& Value);
-    void HandleGunAimStop(const FInputActionValue& Value);
-    void HandleDodge(const FInputActionValue& Value);
-    void HandleInteract(const FInputActionValue& Value);
-    void HandleMoveCompleted(const FInputActionValue& Value);
-
     bool bMappingContextAdded = false;
+    bool bPauseMenuOpen = false;
+
+    UPROPERTY()
+    TObjectPtr<UPauseMenuWidget> PauseMenuInstance = nullptr;
 };
