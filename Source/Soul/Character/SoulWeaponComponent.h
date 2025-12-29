@@ -20,6 +20,7 @@ public:
 	bool EquipWeapon(EWeaponType Type);
 
 	FORCEINLINE EWeaponType GetEquippedType() const { return EquippedType; }
+    FORCEINLINE TObjectPtr<UStaticMeshComponent> GetEquippedMeshComponent() const { return EquippedStaticMeshComp; }
 
 protected:
     virtual void BeginPlay() override;
@@ -36,5 +37,4 @@ protected:
 
     UPROPERTY()
     EWeaponType EquippedType = EWeaponType::Empty;
-
 };

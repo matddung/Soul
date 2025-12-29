@@ -1,6 +1,7 @@
 #pragma once
 
 #include "CoreMinimal.h"
+#include "InputCoreTypes.h"
 #include "Blueprint/UserWidget.h"
 #include "PauseMenuWidget.generated.h"
 
@@ -9,6 +10,10 @@ class UButton;
 class USlider;
 class USoundMix;
 class USoundClass;
+class UVerticalBox;
+class UInputKeySelector;
+class UTextBlock;
+class UHorizontalBox;
 
 UENUM(BlueprintType)
 enum class EPausePage : uint8
@@ -39,6 +44,8 @@ public:
 	void SetMasterAudioConfig(USoundMix* InSoundMix, USoundClass* InSoundClass, float InVolume);
 
 protected:
+	virtual void NativeOnInitialized() override;
+
 	void SetPage(EPausePage Page);
 
 	UFUNCTION()
@@ -62,13 +69,23 @@ protected:
 	UFUNCTION()
 	void OnMasterVolumeChanged(float Value);
 
+	UFUNCTION()
+	void OnKeySelected(FInputChord SelectedKey);
+
+	UFUNCTION()
+	void OnKeySelectorSelectionChanged();
+
+	UFUNCTION()
+	void OnResetKeysClicked();
+
+	void BuildKeyBindingList();
+	void RefreshKeySelectors();
+
 public:
 	UPROPERTY(EditDefaultsOnly, Category = "Audio", meta = (ClampMin = "0.0", ClampMax = "1.0"))
 	float DefaultMasterVolume = 1.0f;
 
 protected:
-	virtual void NativeOnInitialized() override;
-
 	UPROPERTY(meta = (BindWidget))
 	UWidgetSwitcher* WS_Pages;
 
@@ -101,4 +118,17 @@ protected:
 
 	float CurrentMasterVolume = 1.0f;
 
+	UPROPERTY(meta = (BindWidgetOptional))
+	UVerticalBox* VB_KeyBindings;
+
+	UPROPERTY(meta = (BindWidgetOptional))
+	UButton* Btn_ResetKeys;
+
+	UPROPERTY(Transient)
+	TArray<TWeakObjectPtr<UInputKeySelector>> KeySelectors;
+
+	UPROPERTY(Transient)
+	TArray<FName> SelectorActionNames;
+
+	int32 ActiveSelectorIndex = INDEX_NONE;
 };

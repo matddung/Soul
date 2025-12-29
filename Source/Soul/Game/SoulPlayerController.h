@@ -2,6 +2,7 @@
 
 #include "CoreMinimal.h"
 #include "InputActionValue.h"
+#include "InputCoreTypes.h"
 #include "GameFramework/PlayerController.h"
 #include "SoulPlayerController.generated.h"
 
@@ -16,6 +17,18 @@ class UAudioComponent;
 class USoundMix;
 class USoundClass;
 class UGameSettingSaveData;
+
+USTRUCT()
+struct FPlayerActionKeyMapping
+{
+    GENERATED_BODY()
+
+    UPROPERTY()
+    TObjectPtr<UInputAction> InputAction = nullptr;
+
+    UPROPERTY()
+    FText DisplayName;
+};
 
 UCLASS()
 class SOUL_API ASoulPlayerController : public APlayerController
@@ -33,6 +46,14 @@ public:
 
     void SaveGameSettings(float InMasterVolume);
 
+    TArray<FPlayerActionKeyMapping> GetRebindableActions() const;
+    FKey GetKeyForAction(const UInputAction* InputAction) const;
+    void UpdateKeyMapping(UInputAction* InputAction, const FKey& NewKey, bool bSave = true);
+    void ResetKeyMappingsToDefault();
+    void SaveKeyMappings();
+    void ApplySavedKeyMappings();
+    TMap<FName, FKey> GetCurrentKeyMappings() const;
+
 protected:
     virtual void BeginPlay() override;
     virtual void SetupInputComponent() override;
@@ -44,6 +65,8 @@ protected:
     void RemoveDefaultMappingContext();
     void BindInputActions();
     ASoulCharacter* GetSoulCharacter() const;
+    void BuildRuntimeMappingContext();
+    UInputMappingContext* GetActiveMappingContext() const;
 
     void HandleMove(const FInputActionValue& Value);
     void HandleLook(const FInputActionValue& Value);
@@ -142,6 +165,9 @@ protected:
 
     UPROPERTY()
     TObjectPtr<UGameSettingSaveData> GameSettingSaveData;
+
+    UPROPERTY(Transient)
+    TObjectPtr<UInputMappingContext> RuntimeMappingContext;
 
 private:
     bool bMappingContextAdded = false;

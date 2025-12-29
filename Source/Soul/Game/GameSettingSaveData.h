@@ -13,6 +13,9 @@ public:
 	UPROPERTY(BlueprintReadWrite)
 	float MasterVolume = 1.0f;
 
+	UPROPERTY(BlueprintReadWrite)
+	TMap<FName, FKey> SavedKeyMappings;
+
 public:
 	static FString GetSlotName();
 };

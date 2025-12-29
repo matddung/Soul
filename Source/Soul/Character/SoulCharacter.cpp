@@ -12,8 +12,8 @@
 #include "GameFramework/CharacterMovementComponent.h"
 #include "GameFramework/SpringArmComponent.h"
 #include "GameFramework/Controller.h"
-
 #include "Kismet/GameplayStatics.h"
+#include "Particles/ParticleSystem.h"
 
 ASoulCharacter::ASoulCharacter()
 {

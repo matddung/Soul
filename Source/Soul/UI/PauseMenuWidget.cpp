@@ -8,6 +8,13 @@
 #include "Sound/SoundClass.h"
 #include "Components/Slider.h"
 #include "Kismet/GameplayStatics.h"
+#include "Components/HorizontalBox.h"
+#include "Components/HorizontalBoxSlot.h"
+#include "Components/InputKeySelector.h"
+#include "InputAction.h"
+#include "Components/TextBlock.h"
+#include "Components/VerticalBox.h"
+#include "Blueprint/WidgetTree.h"
 
 void UPauseMenuWidget::NativeOnInitialized()
 {
@@ -48,6 +55,13 @@ void UPauseMenuWidget::NativeOnInitialized()
 		Slider_MasterVolume->OnValueChanged.AddDynamic(this, &UPauseMenuWidget::OnMasterVolumeChanged);
 		Slider_MasterVolume->SetValue(CurrentMasterVolume);
 	}
+
+	if (Btn_ResetKeys)
+	{
+		Btn_ResetKeys->OnClicked.AddDynamic(this, &UPauseMenuWidget::OnResetKeysClicked);
+	}
+
+	BuildKeyBindingList();
 
 	ShowMain();
 }
@@ -95,6 +109,7 @@ void UPauseMenuWidget::ShowMain()
 void UPauseMenuWidget::ShowSettings()
 {
 	SetPage(EPausePage::Settings);
+	RefreshKeySelectors();
 }
 
 void UPauseMenuWidget::ShowQuitConfirm()
@@ -154,6 +169,53 @@ void UPauseMenuWidget::OnQuitYesClicked()
 	}
 }
 
+void UPauseMenuWidget::OnKeySelected(FInputChord SelectedKey)
+{
+	const int32 SelectorIndex = ActiveSelectorIndex;
+	ActiveSelectorIndex = INDEX_NONE;
+
+	if (!KeySelectors.IsValidIndex(SelectorIndex) || !SelectorActionNames.IsValidIndex(SelectorIndex))
+	{
+		return;
+	}
+
+	const TWeakObjectPtr<UInputKeySelector> Selector = KeySelectors[SelectorIndex];
+	if (!Selector.IsValid())
+	{
+		return;
+	}
+
+	if (ASoulPlayerController* SoulPC = Cast<ASoulPlayerController>(GetOwningPlayer()))
+	{
+		const FName ActionName = SelectorActionNames[SelectorIndex];
+		const TArray<FPlayerActionKeyMapping> Actions = SoulPC->GetRebindableActions();
+
+		for (const FPlayerActionKeyMapping& Action : Actions)
+		{
+			if (Action.InputAction && Action.InputAction->GetFName() == ActionName)
+			{
+				SoulPC->UpdateKeyMapping(Action.InputAction, SelectedKey.Key);
+				break;
+			}
+		}
+
+		RefreshKeySelectors();
+	}
+}
+
+void UPauseMenuWidget::OnKeySelectorSelectionChanged()
+{
+	for (int32 Index = 0; Index < KeySelectors.Num(); ++Index)
+	{
+		const TWeakObjectPtr<UInputKeySelector>& Selector = KeySelectors[Index];
+		if (Selector.IsValid() && Selector->GetIsSelectingKey())
+		{
+			ActiveSelectorIndex = Index;
+			return;
+		}
+	}
+}
+
 void UPauseMenuWidget::OnMasterVolumeChanged(float Value)
 {
 	if (!MasterSoundMix || !MasterSoundClass) return;
@@ -166,5 +228,112 @@ void UPauseMenuWidget::OnMasterVolumeChanged(float Value)
 	if (ASoulPlayerController* SoulPC = Cast<ASoulPlayerController>(GetOwningPlayer()))
 	{
 		SoulPC->SaveGameSettings(CurrentMasterVolume);
+	}
+}
+
+void UPauseMenuWidget::OnResetKeysClicked()
+{
+	if (ASoulPlayerController* SoulPC = Cast<ASoulPlayerController>(GetOwningPlayer()))
+	{
+		SoulPC->ResetKeyMappingsToDefault();
+		RefreshKeySelectors();
+	}
+}
+
+void UPauseMenuWidget::BuildKeyBindingList()
+{
+	KeySelectors.Empty();
+	SelectorActionNames.Empty();
+	ActiveSelectorIndex = INDEX_NONE;
+
+	if (!VB_KeyBindings)
+	{
+		return;
+	}
+
+	VB_KeyBindings->ClearChildren();
+
+	ASoulPlayerController* SoulPC = Cast<ASoulPlayerController>(GetOwningPlayer());
+	if (!SoulPC || !WidgetTree)
+	{
+		return;
+	}
+
+	const TArray<FPlayerActionKeyMapping> Actions = SoulPC->GetRebindableActions();
+	for (const FPlayerActionKeyMapping& Action : Actions)
+	{
+		if (!Action.InputAction)
+		{
+			continue;
+		}
+
+		UHorizontalBox* Row = WidgetTree->ConstructWidget<UHorizontalBox>(UHorizontalBox::StaticClass());
+		if (!Row)
+		{
+			continue;
+		}
+
+		UTextBlock* Label = WidgetTree->ConstructWidget<UTextBlock>(UTextBlock::StaticClass());
+		if (Label)
+		{
+			Label->SetText(Action.DisplayName);
+			Row->AddChildToHorizontalBox(Label);
+		}
+
+		UInputKeySelector* Selector = WidgetTree->ConstructWidget<UInputKeySelector>(UInputKeySelector::StaticClass());
+		if (Selector)
+		{
+			Selector->SetAllowGamepadKeys(true);
+			Selector->SetAllowModifierKeys(false);
+			Selector->OnKeySelected.AddDynamic(this, &UPauseMenuWidget::OnKeySelected);
+			Selector->OnIsSelectingKeyChanged.AddDynamic(this, &UPauseMenuWidget::OnKeySelectorSelectionChanged);
+			Selector->SetSelectedKey(SoulPC->GetKeyForAction(Action.InputAction));
+
+			if (UHorizontalBoxSlot* SelectorSlot = Row->AddChildToHorizontalBox(Selector))
+			{
+				SelectorSlot->SetPadding(FMargin(8.0f, 0.0f, 0.0f, 0.0f));
+				SelectorSlot->SetHorizontalAlignment(HAlign_Fill);
+			}
+
+			KeySelectors.Add(Selector);
+			SelectorActionNames.Add(Action.InputAction->GetFName());
+		}
+
+		VB_KeyBindings->AddChild(Row);
+	}
+}
+
+void UPauseMenuWidget::RefreshKeySelectors()
+{
+	ASoulPlayerController* SoulPC = Cast<ASoulPlayerController>(GetOwningPlayer());
+	if (!SoulPC)
+	{
+		return;
+	}
+
+	const TArray<FPlayerActionKeyMapping> Actions = SoulPC->GetRebindableActions();
+
+	for (int32 Index = 0; Index < KeySelectors.Num(); ++Index)
+	{
+		if (!SelectorActionNames.IsValidIndex(Index))
+		{
+			continue;
+		}
+
+		UInputKeySelector* Selector = KeySelectors[Index].Get();
+		if (!Selector)
+		{
+			continue;
+		}
+
+		const FName ActionName = SelectorActionNames[Index];
+		for (const FPlayerActionKeyMapping& Action : Actions)
+		{
+			if (Action.InputAction && Action.InputAction->GetFName() == ActionName)
+			{
+				Selector->SetSelectedKey(SoulPC->GetKeyForAction(Action.InputAction));
+				break;
+			}
+		}
 	}
 }

@@ -13,6 +13,7 @@
 #include "Kismet/GameplayStatics.h"
 #include "Sound/SoundMix.h"
 #include "Sound/SoundClass.h"
+#include "InputMappingContext.h"
 
 void ASoulPlayerController::BeginPlay()
 {
@@ -130,30 +131,243 @@ void ASoulPlayerController::ShowInteractPrompt(bool bShow, const FText& Text)
     }
 }
 
-void ASoulPlayerController::AddDefaultMappingContext()
+TArray<FPlayerActionKeyMapping> ASoulPlayerController::GetRebindableActions() const
 {
-    if (bMappingContextAdded || !DefaultMappingContext)
+    TArray<FPlayerActionKeyMapping> Actions;
+    Actions.Reserve(8);
+
+    Actions.Add({ SprintAction, FText::FromString(TEXT("Sprint")) });
+    Actions.Add({ AttackAction, FText::FromString(TEXT("Attack")) });
+    Actions.Add({ SwapSwordAction, FText::FromString(TEXT("Swap Sword")) });
+    Actions.Add({ SwapGunAction, FText::FromString(TEXT("Swap Gun")) });
+    Actions.Add({ SwapEmptyAction, FText::FromString(TEXT("Unequip")) });
+    Actions.Add({ SwordDodgeAction, FText::FromString(TEXT("Dodge")) });
+    Actions.Add({ InteractAction, FText::FromString(TEXT("Interact")) });
+    Actions.Add({ PauseMenuAction, FText::FromString(TEXT("Pause")) });
+
+    Actions.RemoveAll([](const FPlayerActionKeyMapping& Mapping)
+        {
+            return !IsValid(Mapping.InputAction);
+        });
+
+    return Actions;
+}
+
+FKey ASoulPlayerController::GetKeyForAction(const UInputAction* InputAction) const
+{
+    if (!InputAction)
+    {
+        return FKey();
+    }
+
+    if (const UInputMappingContext* MappingContext = GetActiveMappingContext())
+    {
+        for (const FEnhancedActionKeyMapping& Mapping : MappingContext->GetMappings())
+        {
+            if (Mapping.Action == InputAction)
+            {
+                return Mapping.Key;
+            }
+        }
+    }
+
+    return FKey();
+}
+
+void ASoulPlayerController::UpdateKeyMapping(UInputAction* InputAction, const FKey& NewKey, bool bSave /*= true*/)
+{
+    if (!InputAction || !NewKey.IsValid())
+    {
+        return;
+    }
+
+    BuildRuntimeMappingContext();
+
+    if (!RuntimeMappingContext)
+    {
+        return;
+    }
+
+    const TArray<FEnhancedActionKeyMapping> ExistingMappings = RuntimeMappingContext->GetMappings();
+
+    for (const FEnhancedActionKeyMapping& Mapping : ExistingMappings)
+    {
+        if (Mapping.Key == NewKey && Mapping.Action != InputAction)
+        {
+            RuntimeMappingContext->UnmapKey(Mapping.Action, Mapping.Key);
+        }
+    }
+
+    for (const FEnhancedActionKeyMapping& Mapping : ExistingMappings)
+    {
+        if (Mapping.Action == InputAction)
+        {
+            RuntimeMappingContext->UnmapKey(Mapping.Action, Mapping.Key);
+        }
+    }
+
+    RuntimeMappingContext->MapKey(InputAction, NewKey);
+
+    if (UEnhancedInputLocalPlayerSubsystem* Subsystem = ULocalPlayer::GetSubsystem<UEnhancedInputLocalPlayerSubsystem>(GetLocalPlayer()))
+    {
+        FModifyContextOptions Options;
+        Options.bForceImmediately = true;
+        Subsystem->RequestRebuildControlMappings(Options);
+    }
+
+    if (bSave)
+    {
+        SaveKeyMappings();
+    }
+}
+
+void ASoulPlayerController::ResetKeyMappingsToDefault()
+{
+    if (!DefaultMappingContext)
     {
         return;
     }
 
     if (UEnhancedInputLocalPlayerSubsystem* Subsystem = ULocalPlayer::GetSubsystem<UEnhancedInputLocalPlayerSubsystem>(GetLocalPlayer()))
     {
-        Subsystem->AddMappingContext(DefaultMappingContext, 0);
+        if (bMappingContextAdded)
+        {
+            if (UInputMappingContext* MappingContext = GetActiveMappingContext())
+            {
+                Subsystem->RemoveMappingContext(MappingContext);
+            }
+        }
+
+        RuntimeMappingContext = DuplicateObject<UInputMappingContext>(DefaultMappingContext, this);
+        Subsystem->AddMappingContext(RuntimeMappingContext, 0);
+        bMappingContextAdded = true;
+
+        FModifyContextOptions Options;
+        Options.bForceImmediately = true;
+        Subsystem->RequestRebuildControlMappings(Options);
+    }
+
+    SaveKeyMappings();
+}
+
+TMap<FName, FKey> ASoulPlayerController::GetCurrentKeyMappings() const
+{
+    TMap<FName, FKey> Result;
+
+    const UInputMappingContext* MappingContext = GetActiveMappingContext();
+    if (!MappingContext)
+    {
+        return Result;
+    }
+
+    const TArray<FPlayerActionKeyMapping> Actions = GetRebindableActions();
+    for (const FPlayerActionKeyMapping& Action : Actions)
+    {
+        if (!Action.InputAction)
+        {
+            continue;
+        }
+
+        const FKey ActionKey = GetKeyForAction(Action.InputAction);
+        if (ActionKey.IsValid())
+        {
+            Result.Add(Action.InputAction->GetFName(), ActionKey);
+        }
+    }
+
+    return Result;
+}
+
+void ASoulPlayerController::ApplySavedKeyMappings()
+{
+    if (!GameSettingSaveData || GameSettingSaveData->SavedKeyMappings.Num() == 0)
+    {
+        return;
+    }
+
+    BuildRuntimeMappingContext();
+
+    if (!RuntimeMappingContext)
+    {
+        return;
+    }
+
+    const TArray<FPlayerActionKeyMapping> Actions = GetRebindableActions();
+
+    for (const TPair<FName, FKey>& SavedEntry : GameSettingSaveData->SavedKeyMappings)
+    {
+        if (!SavedEntry.Value.IsValid())
+        {
+            continue;
+        }
+
+        for (const FPlayerActionKeyMapping& Action : Actions)
+        {
+            if (Action.InputAction && Action.InputAction->GetFName() == SavedEntry.Key)
+            {
+                UpdateKeyMapping(Action.InputAction, SavedEntry.Value, false);
+                break;
+            }
+        }
+    }
+
+    if (UEnhancedInputLocalPlayerSubsystem* Subsystem = ULocalPlayer::GetSubsystem<UEnhancedInputLocalPlayerSubsystem>(GetLocalPlayer()))
+    {
+        FModifyContextOptions Options;
+        Options.bForceImmediately = true;
+        Subsystem->RequestRebuildControlMappings(Options);
+    }
+}
+
+void ASoulPlayerController::SaveKeyMappings()
+{
+    const float VolumeToSave = GameSettingSaveData ? GameSettingSaveData->MasterVolume : InitialMasterVolume;
+    SaveGameSettings(VolumeToSave);
+}
+
+void ASoulPlayerController::BuildRuntimeMappingContext()
+{
+    if (!RuntimeMappingContext && DefaultMappingContext)
+    {
+        RuntimeMappingContext = DuplicateObject<UInputMappingContext>(DefaultMappingContext, this);
+    }
+}
+
+UInputMappingContext* ASoulPlayerController::GetActiveMappingContext() const
+{
+    return RuntimeMappingContext ? RuntimeMappingContext : DefaultMappingContext;
+}
+
+void ASoulPlayerController::AddDefaultMappingContext()
+{
+    BuildRuntimeMappingContext();
+
+    UInputMappingContext* MappingContext = GetActiveMappingContext();
+    if (bMappingContextAdded || !MappingContext)
+    {
+        return;
+    }
+
+    if (UEnhancedInputLocalPlayerSubsystem* Subsystem = ULocalPlayer::GetSubsystem<UEnhancedInputLocalPlayerSubsystem>(GetLocalPlayer()))
+    {
+        Subsystem->AddMappingContext(MappingContext, 0);
         bMappingContextAdded = true;
     }
 }
 
 void ASoulPlayerController::RemoveDefaultMappingContext()
 {
-    if (!bMappingContextAdded || !DefaultMappingContext)
+    if (!bMappingContextAdded)
     {
         return;
     }
 
     if (UEnhancedInputLocalPlayerSubsystem* Subsystem = ULocalPlayer::GetSubsystem<UEnhancedInputLocalPlayerSubsystem>(GetLocalPlayer()))
     {
-        Subsystem->RemoveMappingContext(DefaultMappingContext);
+        if (UInputMappingContext* MappingContext = GetActiveMappingContext())
+        {
+            Subsystem->RemoveMappingContext(MappingContext);
+        }
     }
 
     bMappingContextAdded = false;
@@ -369,6 +583,7 @@ void ASoulPlayerController::SaveGameSettings(float InMasterVolume)
     if (GameSettingSaveData)
     {
         GameSettingSaveData->MasterVolume = FMath::Clamp(InMasterVolume, 0.0f, 1.0f);
+        GameSettingSaveData->SavedKeyMappings = GetCurrentKeyMappings();
         UGameplayStatics::SaveGameToSlot(GameSettingSaveData, UGameSettingSaveData::GetSlotName(), 0);
     }
 }
@@ -390,6 +605,7 @@ void ASoulPlayerController::LoadGameSettings()
     if (GameSettingSaveData)
     {
         InitialMasterVolume = FMath::Clamp(GameSettingSaveData->MasterVolume, 0.0f, 1.0f);
+        ApplySavedKeyMappings();
     }
 }
 
