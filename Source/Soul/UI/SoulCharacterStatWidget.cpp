@@ -11,46 +11,46 @@ void USoulCharacterStatWidget::NativeOnInitialized()
     BindPlusButton(Btn_DexPlus, ECharacterStatType::DEX);
     BindPlusButton(Btn_VitPlus, ECharacterStatType::VIT);
     BindPlusButton(Btn_EndPlus, ECharacterStatType::END);
+
+    BindMinusButton(Btn_StrMinus, ECharacterStatType::STR);
+    BindMinusButton(Btn_DexMinus, ECharacterStatType::DEX);
+    BindMinusButton(Btn_VitMinus, ECharacterStatType::VIT);
+    BindMinusButton(Btn_EndMinus, ECharacterStatType::END);
 }
 
 void USoulCharacterStatWidget::RefreshStats(const USoulCharacterStatComponent* StatComponent)
 {
-    if (!StatComponent)
-    {
-        SetButtonsEnabled(false);
-        return;
-    }
-
-    const int32 Level = StatComponent->GetLevel();
-    const int32 Souls = StatComponent->Souls;
-    const int32 Cost = StatComponent->GetCurrentInvestCost();
-    const bool bCanInvest = Souls >= Cost;
+    const bool bHasStat = StatComponent != nullptr;
+    const int32 Level = bHasStat ? StatComponent->GetLevel() : 0;
+    const int32 Souls = bHasStat ? StatComponent->Souls : 0;
+    const int32 Cost = bHasStat ? StatComponent->GetCurrentInvestCost() : 0;
+    const bool bCanInvest = bHasStat && Souls >= Cost;
 
     if (Txt_Level)
     {
-        Txt_Level->SetText(FText::AsNumber(Level));
+        Txt_Level->SetText(FText::FromString(FString::Printf(TEXT("LV : %d"), Level)));
     }
 
     if (Txt_Souls)
     {
-        Txt_Souls->SetText(FText::AsNumber(Souls));
+        Txt_Souls->SetText(FText::FromString(FString::Printf(TEXT("MySouls : %d"), Souls)));
     }
 
     if (Txt_InvestCost)
     {
-        Txt_InvestCost->SetText(FText::AsNumber(Cost));
+        Txt_InvestCost->SetText(FText::FromString(FString::Printf(TEXT("NeedSouls : %d"), Cost)));
     }
 
-    UpdateStatRow(Txt_STR, StatComponent->STR);
-    UpdateStatRow(Txt_DEX, StatComponent->DEX);
-    UpdateStatRow(Txt_VIT, StatComponent->VIT);
-    UpdateStatRow(Txt_END, StatComponent->END);
+    UpdateStatRow(Txt_STR, bHasStat ? StatComponent->STR : 0);
+    UpdateStatRow(Txt_DEX, bHasStat ? StatComponent->DEX : 0);
+    UpdateStatRow(Txt_VIT, bHasStat ? StatComponent->VIT : 0);
+    UpdateStatRow(Txt_END, bHasStat ? StatComponent->END : 0);
 
-    const FCharacterDerivedStats CurrentDerived = StatComponent->GetCurrentDerivedStats();
-    const FCharacterDerivedStats STRPreview = StatComponent->GetPreviewDerivedStats(ECharacterStatType::STR);
-    const FCharacterDerivedStats DEXPreview = StatComponent->GetPreviewDerivedStats(ECharacterStatType::DEX);
-    const FCharacterDerivedStats VITPreview = StatComponent->GetPreviewDerivedStats(ECharacterStatType::VIT);
-    const FCharacterDerivedStats ENDPreview = StatComponent->GetPreviewDerivedStats(ECharacterStatType::END);
+    const FCharacterDerivedStats CurrentDerived = bHasStat ? StatComponent->GetCurrentDerivedStats() : FCharacterDerivedStats();
+    const FCharacterDerivedStats STRPreview = bHasStat ? StatComponent->GetPreviewDerivedStats(ECharacterStatType::STR) : FCharacterDerivedStats();
+    const FCharacterDerivedStats DEXPreview = bHasStat ? StatComponent->GetPreviewDerivedStats(ECharacterStatType::DEX) : FCharacterDerivedStats();
+    const FCharacterDerivedStats VITPreview = bHasStat ? StatComponent->GetPreviewDerivedStats(ECharacterStatType::VIT) : FCharacterDerivedStats();
+    const FCharacterDerivedStats ENDPreview = bHasStat ? StatComponent->GetPreviewDerivedStats(ECharacterStatType::END) : FCharacterDerivedStats();
 
     UpdateDerivedRow(Txt_MaxHP, TEXT("HP"), CurrentDerived.MaxHP, CurrentDerived.MaxHP);
     UpdateDerivedRow(Txt_Stamina, TEXT("Stamina"), CurrentDerived.MaxStamina, CurrentDerived.MaxStamina);
@@ -61,10 +61,11 @@ void USoulCharacterStatWidget::RefreshStats(const USoulCharacterStatComponent* S
     UpdateDerivedRow(Txt_StrEffect, TEXT("Sword Damage"), CurrentDerived.SwordDamage, STRPreview.SwordDamage);
     UpdateDerivedRow(Txt_DexEffect, TEXT("Gun Damage"), CurrentDerived.GunDamage, DEXPreview.GunDamage);
     UpdateDerivedRow(Txt_VitEffect, TEXT("Max HP"), CurrentDerived.MaxHP, VITPreview.MaxHP);
-    UpdateDerivedRow(Txt_EndEffect, TEXT("Max Stamina"), CurrentDerived.MaxStamina, VITPreview.MaxStamina);
+    UpdateDerivedRow(Txt_VitEffect, TEXT("Max Stamina"), CurrentDerived.MaxStamina, VITPreview.MaxStamina);
+    UpdateDerivedRow(Txt_VitEffect, TEXT("Stamina Regen Rate"), CurrentDerived.StaminaRegenRate, VITPreview.StaminaRegenRate);
     UpdateEnduranceRow(CurrentDerived, ENDPreview);
 
-    SetButtonsEnabled(bCanInvest);
+    UpdateButtonStates(StatComponent);
 }
 
 void USoulCharacterStatWidget::BindPlusButton(UButton* Button, ECharacterStatType StatType)
@@ -80,6 +81,23 @@ void USoulCharacterStatWidget::BindPlusButton(UButton* Button, ECharacterStatTyp
     case ECharacterStatType::DEX: Button->OnClicked.AddDynamic(this, &USoulCharacterStatWidget::OnDEXPlusClicked); break;
     case ECharacterStatType::VIT: Button->OnClicked.AddDynamic(this, &USoulCharacterStatWidget::OnVITPlusClicked); break;
     case ECharacterStatType::END: Button->OnClicked.AddDynamic(this, &USoulCharacterStatWidget::OnENDPlusClicked); break;
+    default: break;
+    }
+}
+
+void USoulCharacterStatWidget::BindMinusButton(UButton* Button, ECharacterStatType StatType)
+{
+    if (!Button)
+    {
+        return;
+    }
+
+    switch (StatType)
+    {
+    case ECharacterStatType::STR: Button->OnClicked.AddDynamic(this, &USoulCharacterStatWidget::OnSTRMinusClicked); break;
+    case ECharacterStatType::DEX: Button->OnClicked.AddDynamic(this, &USoulCharacterStatWidget::OnDEXMinusClicked); break;
+    case ECharacterStatType::VIT: Button->OnClicked.AddDynamic(this, &USoulCharacterStatWidget::OnVITMinusClicked); break;
+    case ECharacterStatType::END: Button->OnClicked.AddDynamic(this, &USoulCharacterStatWidget::OnENDMinusClicked); break;
     default: break;
     }
 }
@@ -105,7 +123,7 @@ void USoulCharacterStatWidget::UpdateDerivedRow(UTextBlock* TextWidget, const FS
     }
     else
     {
-        TextWidget->SetText(FText::FromString(FString::Printf(TEXT("%s %.1f ¡æ %.1f"), *Label, Current, Next)));
+        TextWidget->SetText(FText::FromString(FString::Printf(TEXT("%s %.1f -> %.1f"), *Label, Current, Next)));
     }
 }
 
@@ -116,52 +134,81 @@ void USoulCharacterStatWidget::UpdateEnduranceRow(const FCharacterDerivedStats& 
         return;
     }
 
-    const FString StaminaString = FString::Printf(TEXT("Stamina%.1f ¡æ %.1f"), Current.MaxStamina, Preview.MaxStamina);
-    const FString RegenString = FString::Printf(TEXT("Regen %.1f ¡æ %.1f"), Current.StaminaRegenRate, Preview.StaminaRegenRate);
+    const FString StaminaString = FString::Printf(TEXT("Stamina %.1f -> %.1f"), Current.MaxStamina, Preview.MaxStamina);
+    const FString RegenString = FString::Printf(TEXT("Regen %.1f -> %.1f"), Current.StaminaRegenRate, Preview.StaminaRegenRate);
     Txt_EndEffect->SetText(FText::FromString(FString::Printf(TEXT("%s / %s"), *StaminaString, *RegenString)));
 }
 
-void USoulCharacterStatWidget::SetButtonsEnabled(bool bEnabled)
+void USoulCharacterStatWidget::UpdateButtonStates(const USoulCharacterStatComponent* StatComponent)
 {
-    if (Btn_StrPlus)
+    const bool bHasStat = StatComponent != nullptr;
+    const bool bHasSoulsForInvest = bHasStat && StatComponent->Souls >= StatComponent->GetCurrentInvestCost();
+
+    const int32 STRValue = bHasStat ? StatComponent->STR : 0;
+    const int32 DEXValue = bHasStat ? StatComponent->DEX : 0;
+    const int32 VITValue = bHasStat ? StatComponent->VIT : 0;
+    const int32 ENDValue = bHasStat ? StatComponent->END : 0;
+
+    SetButtonEnabled(Btn_StrPlus, bHasSoulsForInvest && STRValue < USoulCharacterStatComponent::MaxStatValue);
+    SetButtonEnabled(Btn_DexPlus, bHasSoulsForInvest && DEXValue < USoulCharacterStatComponent::MaxStatValue);
+    SetButtonEnabled(Btn_VitPlus, bHasSoulsForInvest && VITValue < USoulCharacterStatComponent::MaxStatValue);
+    SetButtonEnabled(Btn_EndPlus, bHasSoulsForInvest && ENDValue < USoulCharacterStatComponent::MaxStatValue);
+
+    SetButtonEnabled(Btn_StrMinus, bHasStat && STRValue > USoulCharacterStatComponent::MinStatValue);
+    SetButtonEnabled(Btn_DexMinus, bHasStat && DEXValue > USoulCharacterStatComponent::MinStatValue);
+    SetButtonEnabled(Btn_VitMinus, bHasStat && VITValue > USoulCharacterStatComponent::MinStatValue);
+    SetButtonEnabled(Btn_EndMinus, bHasStat && ENDValue > USoulCharacterStatComponent::MinStatValue);
+}
+
+void USoulCharacterStatWidget::SetButtonEnabled(UButton* Button, bool bEnabled) const
+{
+    if (Button)
     {
-        Btn_StrPlus->SetIsEnabled(bEnabled);
-    }
-    if (Btn_DexPlus)
-    {
-        Btn_DexPlus->SetIsEnabled(bEnabled);
-    }
-    if (Btn_VitPlus)
-    {
-        Btn_VitPlus->SetIsEnabled(bEnabled);
-    }
-    if (Btn_EndPlus)
-    {
-        Btn_EndPlus->SetIsEnabled(bEnabled);
+        Button->SetIsEnabled(bEnabled);
     }
 }
 
-void USoulCharacterStatWidget::BroadcastInvest(ECharacterStatType StatType)
+void USoulCharacterStatWidget::BroadcastAdjust(ECharacterStatType StatType, int32 Delta)
 {
-    OnRequestInvestStat.Broadcast(StatType);
+    OnRequestAdjustStat.Broadcast(StatType, Delta);
 }
 
 void USoulCharacterStatWidget::OnSTRPlusClicked()
 {
-    BroadcastInvest(ECharacterStatType::STR);
+    BroadcastAdjust(ECharacterStatType::STR, 1);
 }
 
 void USoulCharacterStatWidget::OnDEXPlusClicked()
 {
-    BroadcastInvest(ECharacterStatType::DEX);
+    BroadcastAdjust(ECharacterStatType::DEX, 1);
 }
 
 void USoulCharacterStatWidget::OnVITPlusClicked()
 {
-    BroadcastInvest(ECharacterStatType::VIT);
+    BroadcastAdjust(ECharacterStatType::VIT, 1);
 }
 
 void USoulCharacterStatWidget::OnENDPlusClicked()
 {
-    BroadcastInvest(ECharacterStatType::END);
+    BroadcastAdjust(ECharacterStatType::END, 1);
+}
+
+void USoulCharacterStatWidget::OnSTRMinusClicked()
+{
+    BroadcastAdjust(ECharacterStatType::STR, -1);
+}
+
+void USoulCharacterStatWidget::OnDEXMinusClicked()
+{
+    BroadcastAdjust(ECharacterStatType::DEX, -1);
+}
+
+void USoulCharacterStatWidget::OnVITMinusClicked()
+{
+    BroadcastAdjust(ECharacterStatType::VIT, -1);
+}
+
+void USoulCharacterStatWidget::OnENDMinusClicked()
+{
+    BroadcastAdjust(ECharacterStatType::END, -1);
 }

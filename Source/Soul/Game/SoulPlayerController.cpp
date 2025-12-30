@@ -4,6 +4,8 @@
 #include "../Character/SoulCharacter.h"
 #include "../UI/PauseMenuWidget.h"
 #include "GameSettingSaveData.h"
+#include "../UI/SoulCharacterStatWidget.h"
+#include "../Character/SoulCharacterStatComponent.h"
 
 #include "Blueprint/UserWidget.h"
 #include "EnhancedInputComponent.h"
@@ -55,6 +57,8 @@ void ASoulPlayerController::OnPossess(APawn* InPawn)
     Super::OnPossess(InPawn);
 
     AddDefaultMappingContext();
+    BindStatComponent();
+    RefreshStatusWidget();
 }
 
 void ASoulPlayerController::OnUnPossess()
@@ -62,6 +66,15 @@ void ASoulPlayerController::OnUnPossess()
     Super::OnUnPossess();
 
     RemoveDefaultMappingContext();
+
+    CloseStatusWidget();
+
+    if (CachedStatComponent.IsValid())
+    {
+        CachedStatComponent->OnStatChanged.RemoveDynamic(this, &ASoulPlayerController::OnCharacterStatChanged);
+    }
+
+    CachedStatComponent.Reset();
 }
 
 void ASoulPlayerController::EndPlay(const EEndPlayReason::Type EndPlayReason)
@@ -134,7 +147,7 @@ void ASoulPlayerController::ShowInteractPrompt(bool bShow, const FText& Text)
 TArray<FPlayerActionKeyMapping> ASoulPlayerController::GetRebindableActions() const
 {
     TArray<FPlayerActionKeyMapping> Actions;
-    Actions.Reserve(8);
+    Actions.Reserve(9);
 
     Actions.Add({ SprintAction, FText::FromString(TEXT("Sprint")) });
     Actions.Add({ AttackAction, FText::FromString(TEXT("Attack")) });
@@ -144,6 +157,7 @@ TArray<FPlayerActionKeyMapping> ASoulPlayerController::GetRebindableActions() co
     Actions.Add({ SwordDodgeAction, FText::FromString(TEXT("Dodge")) });
     Actions.Add({ InteractAction, FText::FromString(TEXT("Interact")) });
     Actions.Add({ PauseMenuAction, FText::FromString(TEXT("Pause")) });
+    Actions.Add({ StatusAction, FText::FromString(TEXT("Status")) });
 
     Actions.RemoveAll([](const FPlayerActionKeyMapping& Mapping)
         {
@@ -399,6 +413,8 @@ void ASoulPlayerController::BindInputActions()
         EnhancedInputComponent->BindAction(MoveAction, ETriggerEvent::Canceled, this, &ASoulPlayerController::HandleMoveCompleted);
 
         EnhancedInputComponent->BindAction(PauseMenuAction, ETriggerEvent::Started, this, &ASoulPlayerController::TogglePauseMenu);
+
+        EnhancedInputComponent->BindAction(StatusAction, ETriggerEvent::Started, this, &ASoulPlayerController::HandleToggleStatus);
     }
 }
 
@@ -523,6 +539,11 @@ void ASoulPlayerController::TogglePauseMenu()
     }
 }
 
+void ASoulPlayerController::HandleToggleStatus(const FInputActionValue& Value)
+{
+    ToggleStatusWidget();
+}
+
 void ASoulPlayerController::OpenPauseMenu()
 {
     if (!PauseMenuClass)
@@ -639,5 +660,134 @@ void ASoulPlayerController::StopBackgroundMusic()
     if (BackgroundMusicComponent)
     {
         BackgroundMusicComponent->Stop();
+    }
+}
+
+void ASoulPlayerController::ToggleStatusWidget()
+{
+    if (bStatusWidgetOpen)
+    {
+        CloseStatusWidget();
+    }
+    else
+    {
+        OpenStatusWidget();
+    }
+}
+
+void ASoulPlayerController::OpenStatusWidget()
+{
+    if (!CharacterStatWidget && CharacterStatWidgetClass)
+    {
+        CharacterStatWidget = CreateWidget<USoulCharacterStatWidget>(this, CharacterStatWidgetClass);
+
+        if (CharacterStatWidget)
+        {
+            CharacterStatWidget->OnRequestAdjustStat.AddDynamic(this, &ASoulPlayerController::OnRequestAdjust);
+        }
+    }
+
+    if (!CharacterStatWidget)
+    {
+        UE_LOG(LogTemp, Warning, TEXT("CharacterStatWidgetClass is not set on PlayerController."));
+        return;
+    }
+
+    if (CharacterStatWidget && !CharacterStatWidget->IsInViewport())
+    {
+        CharacterStatWidget->AddToViewport(50);
+    }
+
+    RefreshStatusWidget();
+
+    bShowMouseCursor = true;
+
+    FInputModeGameAndUI InputMode;
+    InputMode.SetHideCursorDuringCapture(false);
+    InputMode.SetLockMouseToViewportBehavior(EMouseLockMode::DoNotLock);
+    InputMode.SetWidgetToFocus(CharacterStatWidget ? CharacterStatWidget->TakeWidget() : TSharedPtr<SWidget>());
+    SetInputMode(InputMode);
+
+    bStatusWidgetOpen = true;
+}
+
+void ASoulPlayerController::CloseStatusWidget()
+{
+    if (CharacterStatWidget && CharacterStatWidget->IsInViewport())
+    {
+        CharacterStatWidget->RemoveFromParent();
+    }
+
+    bShowMouseCursor = false;
+
+    FInputModeGameOnly InputMode;
+    SetInputMode(InputMode);
+
+    bStatusWidgetOpen = false;
+}
+
+void ASoulPlayerController::RefreshStatusWidget()
+{
+    if (!CharacterStatWidget)
+    {
+        return;
+    }
+
+    if (USoulCharacterStatComponent* StatComp = CachedStatComponent.Get())
+    {
+        CharacterStatWidget->RefreshStats(StatComp);
+    }
+    else
+    {
+        CharacterStatWidget->RefreshStats(nullptr);
+    }
+}
+
+void ASoulPlayerController::BindStatComponent()
+{
+    if (CachedStatComponent.IsValid())
+    {
+        CachedStatComponent->OnStatChanged.RemoveDynamic(this, &ASoulPlayerController::OnCharacterStatChanged);
+    }
+
+    if (ASoulCharacter* SoulCharacter = GetSoulCharacter())
+    {
+        CachedStatComponent = SoulCharacter->StatComp;
+    }
+    else
+    {
+        CachedStatComponent.Reset();
+    }
+
+    if (CachedStatComponent.IsValid())
+    {
+        CachedStatComponent->OnStatChanged.AddDynamic(this, &ASoulPlayerController::OnCharacterStatChanged);
+    }
+}
+
+void ASoulPlayerController::OnCharacterStatChanged()
+{
+    RefreshStatusWidget();
+}
+
+void ASoulPlayerController::OnRequestAdjust(ECharacterStatType StatType, int32 Delta)
+{
+    if (USoulCharacterStatComponent* StatComp = CachedStatComponent.Get())
+    {
+        bool bAdjusted = false;
+
+        if (Delta > 0)
+        {
+            bAdjusted = StatComp->TryInvestStat(StatType);
+        }
+        else if (Delta < 0)
+        {
+            bAdjusted = StatComp->TryRefundStat(StatType);
+        }
+
+        if (!bAdjusted)
+        {
+            RefreshStatusWidget();
+        }
     }
 }

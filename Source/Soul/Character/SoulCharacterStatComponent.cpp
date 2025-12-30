@@ -1,5 +1,7 @@
 #include "SoulCharacterStatComponent.h"
 
+#include "Kismet/GameplayStatics.h"
+
 USoulCharacterStatComponent::USoulCharacterStatComponent()
 {
 	PrimaryComponentTick.bCanEverTick = false;
@@ -10,9 +12,7 @@ void USoulCharacterStatComponent::BeginPlay()
 {
 	Super::BeginPlay();
 
-	BaseInvestCost = FixedInitialInvestCost;
-
-	RecalculateDerivedStats(true);
+	LoadStatData();
 }
 
 int32 USoulCharacterStatComponent::GetLevel() const
@@ -58,6 +58,11 @@ void USoulCharacterStatComponent::RecalculateDerivedStats(bool bKeepCurrentRatio
 
 bool USoulCharacterStatComponent::TryInvestStat(ECharacterStatType StatToIncrease)
 {
+	if (GetStatRef(StatToIncrease) >= MaxStatValue)
+	{
+		return false;
+	}
+
 	const int32 Cost = GetCurrentInvestCost();
 
 	if (Souls < Cost)
@@ -72,6 +77,31 @@ bool USoulCharacterStatComponent::TryInvestStat(ECharacterStatType StatToIncreas
 	InvestCount += 1;
 
 	RecalculateDerivedStats(true);
+
+	SaveStatData();
+
+	return true;
+}
+
+bool USoulCharacterStatComponent::TryRefundStat(ECharacterStatType StatToDecrease)
+{
+	if (GetStatRef(StatToDecrease) <= MinStatValue || InvestCount <= 0)
+	{
+		return false;
+	}
+
+	const float RefundCostFloat = (float)BaseInvestCost * FMath::Pow(CostMultiplier, (float)(InvestCount - 1));
+	const int32 RefundCost = FMath::CeilToInt(RefundCostFloat);
+
+	AddToStat(StatToDecrease, -1);
+
+	InvestCount -= 1;
+
+	Souls += RefundCost;
+
+	RecalculateDerivedStats(true);
+
+	SaveStatData();
 
 	return true;
 }
@@ -169,10 +199,10 @@ FCharacterDerivedStats USoulCharacterStatComponent::GetPreviewDerivedStats(EChar
 
 	switch (StatToIncrease)
 	{
-	case ECharacterStatType::STR: ++NextSTR; break;
-	case ECharacterStatType::DEX: ++NextDEX; break;
-	case ECharacterStatType::VIT: ++NextVIT; break;
-	case ECharacterStatType::END: ++NextEND; break;
+	case ECharacterStatType::STR: NextSTR = FMath::Clamp(STR + 1, MinStatValue, MaxStatValue); break;
+	case ECharacterStatType::DEX: NextDEX = FMath::Clamp(DEX + 1, MinStatValue, MaxStatValue); break;
+	case ECharacterStatType::VIT: NextVIT = FMath::Clamp(VIT + 1, MinStatValue, MaxStatValue); break;
+	case ECharacterStatType::END: NextEND = FMath::Clamp(END + 1, MinStatValue, MaxStatValue); break;
 	default: break;
 	}
 
@@ -190,4 +220,43 @@ FCharacterDerivedStats USoulCharacterStatComponent::GetDerivedStatsInternal(int3
 	Result.GunDamage = GunDamageBase + (float)(FMath::Max(1, InDEX) - 1) * GunDamagePerDEX;
 
 	return Result;
+}
+
+void USoulCharacterStatComponent::SaveStatData() const
+{
+	UCharacterStatSaveData* SaveData = Cast<UCharacterStatSaveData>(UGameplayStatics::CreateSaveGameObject(UCharacterStatSaveData::StaticClass()));
+
+	if (!SaveData)
+	{
+		return;
+	}
+
+	SaveData->STR = STR;
+	SaveData->DEX = DEX;
+	SaveData->VIT = VIT;
+	SaveData->END = END;
+	SaveData->Souls = Souls;
+	SaveData->InvestCount = InvestCount;
+
+	UGameplayStatics::SaveGameToSlot(SaveData, UCharacterStatSaveData::GetSlotName(), 0);
+}
+
+void USoulCharacterStatComponent::LoadStatData()
+{
+	const FString SlotName = UCharacterStatSaveData::GetSlotName();
+
+	if (UGameplayStatics::DoesSaveGameExist(SlotName, 0))
+	{
+		if (const UCharacterStatSaveData* LoadedData = Cast<UCharacterStatSaveData>(UGameplayStatics::LoadGameFromSlot(SlotName, 0)))
+		{
+			STR = FMath::Clamp(LoadedData->STR, MinStatValue, MaxStatValue);
+			DEX = FMath::Clamp(LoadedData->DEX, MinStatValue, MaxStatValue);
+			VIT = FMath::Clamp(LoadedData->VIT, MinStatValue, MaxStatValue);
+			END = FMath::Clamp(LoadedData->END, MinStatValue, MaxStatValue);
+			Souls = FMath::Max(0, LoadedData->Souls);
+			InvestCount = FMath::Max(0, LoadedData->InvestCount);
+		}
+	}
+
+	RecalculateDerivedStats(true);
 }

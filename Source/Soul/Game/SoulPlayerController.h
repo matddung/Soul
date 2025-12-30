@@ -4,6 +4,7 @@
 #include "InputActionValue.h"
 #include "InputCoreTypes.h"
 #include "GameFramework/PlayerController.h"
+#include "../Character/SoulCharacterStatComponent.h"
 #include "SoulPlayerController.generated.h"
 
 class UCrosshairWidget;
@@ -17,6 +18,8 @@ class UAudioComponent;
 class USoundMix;
 class USoundClass;
 class UGameSettingSaveData;
+class USoulCharacterStatWidget;
+class USoulCharacterStatComponent;
 
 USTRUCT()
 struct FPlayerActionKeyMapping
@@ -93,6 +96,20 @@ protected:
 
     void LoadGameSettings();
 
+    void HandleToggleStatus(const FInputActionValue& Value);
+
+    void ToggleStatusWidget();
+    void OpenStatusWidget();
+    void CloseStatusWidget();
+    void RefreshStatusWidget();
+    void BindStatComponent();
+
+    UFUNCTION()
+    void OnCharacterStatChanged();
+
+    UFUNCTION()
+    void OnRequestAdjust(ECharacterStatType StatType, int32 Delta);
+
 protected:
     UPROPERTY(EditDefaultsOnly, Category = "UI")
     TSubclassOf<UCrosshairWidget> CrosshairWidgetClass;
@@ -140,6 +157,9 @@ protected:
     TObjectPtr<UInputAction> PauseMenuAction;
 
     UPROPERTY(EditAnywhere, Category = "Input")
+    TObjectPtr<UInputAction> StatusAction;
+
+    UPROPERTY(EditAnywhere, Category = "Input")
     TObjectPtr<UInputMappingContext> DefaultMappingContext;
 
     UPROPERTY(EditDefaultsOnly, Category = "UI")
@@ -169,9 +189,19 @@ protected:
     UPROPERTY(Transient)
     TObjectPtr<UInputMappingContext> RuntimeMappingContext;
 
+    UPROPERTY(EditDefaultsOnly, Category = "UI")
+    TSubclassOf<USoulCharacterStatWidget> CharacterStatWidgetClass;
+
+    UPROPERTY(Transient)
+    TObjectPtr<USoulCharacterStatWidget> CharacterStatWidget;
+
+    UPROPERTY()
+    TWeakObjectPtr<USoulCharacterStatComponent> CachedStatComponent;
+
 private:
     bool bMappingContextAdded = false;
     bool bPauseMenuOpen = false;
+    bool bStatusWidgetOpen = false;
 
     UPROPERTY()
     TObjectPtr<UPauseMenuWidget> PauseMenuInstance = nullptr;

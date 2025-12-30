@@ -2,6 +2,7 @@
 
 #include "CoreMinimal.h"
 #include "Components/ActorComponent.h"
+#include "../Game/CharacterStatSaveData.h"
 #include "SoulCharacterStatComponent.generated.h"
 
 DECLARE_DYNAMIC_MULTICAST_DELEGATE(FOnDead);
@@ -58,6 +59,9 @@ public:
 	bool TryInvestStat(ECharacterStatType StatToIncrease);
 
 	UFUNCTION()
+	bool TryRefundStat(ECharacterStatType StatToDecrease);
+
+	UFUNCTION()
 	void AddSouls(int32 Amount);
 
 	UFUNCTION()
@@ -96,12 +100,17 @@ public:
 	UFUNCTION(BlueprintPure)
 	FCharacterDerivedStats GetPreviewDerivedStats(ECharacterStatType StatToIncrease) const;
 
+	FORCEINLINE static FString GetSaveSlotName() { return UCharacterStatSaveData::GetSlotName(); }
+
 protected:
 	virtual void BeginPlay() override;
 
 	int32 GetStatRef(ECharacterStatType StatType) const;
 	void AddToStat(ECharacterStatType StatType, int32 Delta);
 	FCharacterDerivedStats GetDerivedStatsInternal(int32 InSTR, int32 InDEX, int32 InVIT, int32 InEND) const;
+
+	void SaveStatData() const;
+	void LoadStatData();
 
 public:	
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Stats")
@@ -147,10 +156,10 @@ public:
 	float StaminaRegen_PerEND = 1.5f;
 
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Stats")
-	int32 Souls = 0;
+	int32 Souls = 10000;
 
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Stats")
-	int32 BaseInvestCost = 100;
+	int32 BaseInvestCost = FixedInitialInvestCost;
 
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Stats")
 	float CostMultiplier = 1.1;
@@ -191,6 +200,10 @@ public:
 	UPROPERTY(BlueprintAssignable)
 	FOnStatChanged OnStatChanged;
 
+	static constexpr int32 MinStatValue = 1;
+	static constexpr int32 MaxStatValue = 99;
+
 protected:
 	static constexpr int32 FixedInitialInvestCost = 100;
+	
 };

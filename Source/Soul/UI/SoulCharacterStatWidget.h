@@ -8,7 +8,7 @@
 class UButton;
 class UTextBlock;
 
-DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FOnRequestInvestStat, ECharacterStatType, StatType);
+DECLARE_DYNAMIC_MULTICAST_DELEGATE_TwoParams(FOnRequestAdjustStat, ECharacterStatType, StatType, int32, Delta);
 
 UCLASS()
 class SOUL_API USoulCharacterStatWidget : public UUserWidget
@@ -20,17 +20,19 @@ public:
     void RefreshStats(const USoulCharacterStatComponent* StatComponent);
 
     UPROPERTY(BlueprintAssignable, Category = "Stats")
-    FOnRequestInvestStat OnRequestInvestStat;
+    FOnRequestAdjustStat OnRequestAdjustStat;
 
 protected:
     virtual void NativeOnInitialized() override;
 
     void BindPlusButton(UButton* Button, ECharacterStatType StatType);
+    void BindMinusButton(UButton* Button, ECharacterStatType StatType);
     void UpdateStatRow(UTextBlock* StatText, int32 Value) const;
     void UpdateDerivedRow(UTextBlock* TextWidget, const FString& Label, float Current, float Next) const;
     void UpdateEnduranceRow(const FCharacterDerivedStats& Current, const FCharacterDerivedStats& Preview) const;
-    void SetButtonsEnabled(bool bEnabled);
-    void BroadcastInvest(ECharacterStatType StatType);
+    void UpdateButtonStates(const USoulCharacterStatComponent* StatComponent);
+    void SetButtonEnabled(UButton* Button, bool bEnabled) const;
+    void BroadcastAdjust(ECharacterStatType StatType, int32 Delta);
 
     UFUNCTION()
     void OnSTRPlusClicked();
@@ -43,6 +45,18 @@ protected:
 
     UFUNCTION()
     void OnENDPlusClicked();
+
+    UFUNCTION()
+    void OnSTRMinusClicked();
+
+    UFUNCTION()
+    void OnDEXMinusClicked();
+
+    UFUNCTION()
+    void OnVITMinusClicked();
+
+    UFUNCTION()
+    void OnENDMinusClicked();
 
 protected:
     UPROPERTY(meta = (BindWidget))
@@ -104,4 +118,16 @@ protected:
 
     UPROPERTY(meta = (BindWidget))
     UButton* Btn_EndPlus;
+
+    UPROPERTY(meta = (BindWidgetOptional))
+    UButton* Btn_StrMinus;
+
+    UPROPERTY(meta = (BindWidgetOptional))
+    UButton* Btn_DexMinus;
+
+    UPROPERTY(meta = (BindWidgetOptional))
+    UButton* Btn_VitMinus;
+
+    UPROPERTY(meta = (BindWidgetOptional))
+    UButton* Btn_EndMinus;
 };
