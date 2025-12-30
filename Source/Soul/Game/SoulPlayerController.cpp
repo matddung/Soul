@@ -549,9 +549,10 @@ void ASoulPlayerController::OpenPauseMenu()
     SetPause(true);
     bShowMouseCursor = true;
 
-    FInputModeUIOnly InputMode;
+    FInputModeGameAndUI InputMode;
     InputMode.SetLockMouseToViewportBehavior(EMouseLockMode::DoNotLock);
     InputMode.SetWidgetToFocus(PauseMenuInstance ? PauseMenuInstance->TakeWidget() : TSharedPtr<SWidget>());
+    InputMode.SetHideCursorDuringCapture(false);
     SetInputMode(InputMode);
 
     bPauseMenuOpen = true;

@@ -7,6 +7,27 @@
 DECLARE_DYNAMIC_MULTICAST_DELEGATE(FOnDead);
 DECLARE_DYNAMIC_MULTICAST_DELEGATE(FOnStatChanged);
 
+USTRUCT(BlueprintType)
+struct FCharacterDerivedStats
+{
+	GENERATED_BODY()
+
+	UPROPERTY(BlueprintReadOnly)
+	float MaxHP = 0;
+
+	UPROPERTY(BlueprintReadOnly)
+	float MaxStamina = 0;
+
+	UPROPERTY(BlueprintReadOnly)
+	float StaminaRegenRate = 0;
+
+	UPROPERTY(BlueprintReadOnly)
+	float SwordDamage = 0;
+
+	UPROPERTY(BlueprintReadOnly)
+	float GunDamage = 0;
+};
+
 UENUM(BlueprintType)
 enum class ECharacterStatType : uint8
 {
@@ -69,11 +90,18 @@ public:
 	UFUNCTION(BlueprintPure)
 	FORCEINLINE float GetStaminaRegen() const { return StaminaRegenRate; }
 
+	UFUNCTION(BlueprintPure)
+	FCharacterDerivedStats GetCurrentDerivedStats() const;
+
+	UFUNCTION(BlueprintPure)
+	FCharacterDerivedStats GetPreviewDerivedStats(ECharacterStatType StatToIncrease) const;
+
 protected:
 	virtual void BeginPlay() override;
 
 	int32 GetStatRef(ECharacterStatType StatType) const;
 	void AddToStat(ECharacterStatType StatType, int32 Delta);
+	FCharacterDerivedStats GetDerivedStatsInternal(int32 InSTR, int32 InDEX, int32 InVIT, int32 InEND) const;
 
 public:	
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Stats")
@@ -162,4 +190,7 @@ public:
 
 	UPROPERTY(BlueprintAssignable)
 	FOnStatChanged OnStatChanged;
+
+protected:
+	static constexpr int32 FixedInitialInvestCost = 100;
 };
