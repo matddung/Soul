@@ -32,6 +32,11 @@ void USoulCharacterStatComponent::RecalculateDerivedStats(bool bKeepCurrentRatio
 	MaxHP = HP_Base + (float)(FMath::Max(1, VIT) - 1) * HP_PerVIT;
 	MaxStamina = Stamina_Base + (float)(FMath::Max(1, END) - 1) * Stamina_PerEND;
 
+	StaminaRegenRate = StaminaRegen_Base + (float)(FMath::Max(1, END) - 1) * StaminaRegen_PerEND;
+
+	SwordDamage = SwordDamageBase + (float)(FMath::Max(1, STR) - 1) * SwordDamagePerSTR;
+	GunDamage = GunDamageBase + (float)(FMath::Max(1, DEX) - 1) * GunDamagePerDEX;
+
 	if (bKeepCurrentRatio)
 	{
 		const float HPRatio = (OldMaxHP > 0) ? (HP / OldMaxHP) : 1;
@@ -45,6 +50,8 @@ void USoulCharacterStatComponent::RecalculateDerivedStats(bool bKeepCurrentRatio
 		HP = FMath::Clamp(HP, 0, MaxHP);
 		Stamina = FMath::Clamp(Stamina, 0, MaxStamina);
 	}
+
+	OnStatChanged.Broadcast();
 }
 
 bool USoulCharacterStatComponent::TryInvestStat(ECharacterStatType StatToIncrease)
@@ -91,6 +98,11 @@ bool USoulCharacterStatComponent::ApplyDamage(float DamageAmount)
 	if (HP <= 0 && OldHP > 0)
 	{
 		OnDead.Broadcast();
+	}
+
+	if (!FMath::IsNearlyEqual(OldHP, HP))
+	{
+		OnStatChanged.Broadcast();
 	}
 
 	return !FMath::IsNearlyEqual(OldHP, HP);

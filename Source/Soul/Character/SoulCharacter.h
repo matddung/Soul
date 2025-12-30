@@ -207,12 +207,6 @@ protected:
 	UPROPERTY(VisibleInstanceOnly, Category = "Weapon")
 	float SwordAttackRadius = 50;
 
-	UPROPERTY(EditAnywhere, Category = "Weapon|Sword")
-	float SwordDamage = 20;
-
-	UPROPERTY(EditAnywhere, Category = "Weapon|Gun")
-	float GunDamage = 15;
-
 	UPROPERTY(EditAnywhere, Category = "Weapon|Gun")
 	float GunRange = 2000;
 

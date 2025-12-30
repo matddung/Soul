@@ -69,6 +69,11 @@ void ASoulCharacter::BeginPlay()
 		WeaponComp->GiveWeapon(DefaultSwordData);
 	}
 
+	if (StatComp)
+	{
+		StatComp->RecalculateDerivedStats();
+	}
+
 	CurrentWeaponType = EWeaponType::Empty;
 }
 
@@ -608,7 +613,9 @@ void ASoulCharacter::DoGunShot()
 		{
 			if (HitActor->IsA<ACharacter>())
 			{
-				UGameplayStatics::ApplyPointDamage(HitActor, GunDamage, Direction, HitResult, GetController(), this, nullptr);
+				const float Damage = StatComp ? StatComp->GetGunDamage() : 0;
+
+				UGameplayStatics::ApplyPointDamage(HitActor, Damage, Direction, HitResult, GetController(), this, nullptr);
 
 				UE_LOG(LogTemp, Warning, TEXT("Gun hit actor: %s"), *HitActor->GetName());
 			}
@@ -701,7 +708,9 @@ void ASoulCharacter::AttackCheck()
 		AActor* HitActor = HitResult.GetActor();
 		if (HitActor)
 		{
-			UGameplayStatics::ApplyPointDamage(HitActor, SwordDamage, GetActorForwardVector(), HitResult, GetController(), this, nullptr);
+			const float Damage = StatComp ? StatComp->GetSwordDamage() : 0;
+
+			UGameplayStatics::ApplyPointDamage(HitActor, Damage, GetActorForwardVector(), HitResult, GetController(), this, nullptr);
 			UE_LOG(LogTemp, Warning, TEXT("Hit Actor Name : %s"), *HitActor->GetName());
 		}
 	}

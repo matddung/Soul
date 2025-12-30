@@ -5,6 +5,7 @@
 #include "SoulCharacterStatComponent.generated.h"
 
 DECLARE_DYNAMIC_MULTICAST_DELEGATE(FOnDead);
+DECLARE_DYNAMIC_MULTICAST_DELEGATE(FOnStatChanged);
 
 UENUM(BlueprintType)
 enum class ECharacterStatType : uint8
@@ -46,6 +47,27 @@ public:
 
 	UFUNCTION()
 	void ResetCurrentToMax();
+
+	UFUNCTION(BlueprintPure)
+	FORCEINLINE float GetSwordDamage() const { return SwordDamage; }
+
+	UFUNCTION(BlueprintPure)
+	FORCEINLINE float GetGunDamage() const { return GunDamage; }
+
+	UFUNCTION(BlueprintPure)
+	FORCEINLINE float GetHP() const { return HP; }
+
+	UFUNCTION(BlueprintPure)
+	FORCEINLINE float GetMaxHP() const { return MaxHP; }
+
+	UFUNCTION(BlueprintPure)
+	FORCEINLINE float GetStamina() const { return Stamina; }
+
+	UFUNCTION(BlueprintPure)
+	FORCEINLINE float GetMaxStamina() const { return MaxStamina; }
+
+	UFUNCTION(BlueprintPure)
+	FORCEINLINE float GetStaminaRegen() const { return StaminaRegenRate; }
 
 protected:
 	virtual void BeginPlay() override;
@@ -91,6 +113,12 @@ public:
 	float Stamina_PerEND = 5;
 
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Stats")
+	float StaminaRegen_Base = 20;
+
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Stats")
+	float StaminaRegen_PerEND = 1.5f;
+
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Stats")
 	int32 Souls = 0;
 
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Stats")
@@ -111,6 +139,27 @@ public:
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Stats")
 	bool bCanRegenStamina = true;
 
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Stats")
+	float SwordDamage = 20;
+
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Stats")
+	float GunDamage = 15;
+
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Stats")
+	float SwordDamageBase = 20;
+
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Stats")
+	float GunDamageBase = 15;
+
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Stats")
+	float SwordDamagePerSTR = 2;
+
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Stats")
+	float GunDamagePerDEX = 1.5f;
+
 	UPROPERTY(BlueprintAssignable)
 	FOnDead OnDead;
+
+	UPROPERTY(BlueprintAssignable)
+	FOnStatChanged OnStatChanged;
 };
