@@ -20,6 +20,8 @@ class USoundClass;
 class UGameSettingSaveData;
 class USoulCharacterStatWidget;
 class USoulCharacterStatComponent;
+class UInventoryWidget;
+class USoulInventoryComponent;
 
 USTRUCT()
 struct FPlayerActionKeyMapping
@@ -110,6 +112,11 @@ protected:
     UFUNCTION()
     void OnRequestAdjust(ECharacterStatType StatType, int32 Delta);
 
+    void HandleToggleInventory(const FInputActionValue& Value);
+    void ToggleInventory();
+    void OpenInventory();
+    void CloseInventory();
+
 protected:
     UPROPERTY(EditDefaultsOnly, Category = "UI")
     TSubclassOf<UCrosshairWidget> CrosshairWidgetClass;
@@ -160,6 +167,9 @@ protected:
     TObjectPtr<UInputAction> StatusAction;
 
     UPROPERTY(EditAnywhere, Category = "Input")
+    TObjectPtr<UInputAction> InventoryAction;
+
+    UPROPERTY(EditAnywhere, Category = "Input")
     TObjectPtr<UInputMappingContext> DefaultMappingContext;
 
     UPROPERTY(EditDefaultsOnly, Category = "UI")
@@ -198,10 +208,20 @@ protected:
     UPROPERTY()
     TWeakObjectPtr<USoulCharacterStatComponent> CachedStatComponent;
 
+    UPROPERTY(EditDefaultsOnly, Category = "UI")
+    TSubclassOf<UInventoryWidget> InventoryWidgetClass;
+
+    UPROPERTY(Transient)
+    TObjectPtr<UInventoryWidget> InventoryWidget;
+
+    UPROPERTY()
+    TWeakObjectPtr<USoulInventoryComponent> CachedInventoryComponent;
+
 private:
     bool bMappingContextAdded = false;
     bool bPauseMenuOpen = false;
     bool bStatusWidgetOpen = false;
+    bool bInventoryOpen = false;
 
     UPROPERTY()
     TObjectPtr<UPauseMenuWidget> PauseMenuInstance = nullptr;

@@ -47,6 +47,8 @@ ASoulCharacter::ASoulCharacter()
 	StatComp = CreateDefaultSubobject<USoulCharacterStatComponent>(TEXT("StatComponent"));
 
 	WeaponComp = CreateDefaultSubobject<USoulWeaponComponent>(TEXT("WeaponComp"));
+
+	InventoryComponent = CreateDefaultSubobject<USoulInventoryComponent>(TEXT("InventoryComponent"));
 }
 
 void ASoulCharacter::BeginPlay()

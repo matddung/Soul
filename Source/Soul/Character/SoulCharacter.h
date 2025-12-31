@@ -4,6 +4,7 @@
 #include "GameFramework/Character.h"
 #include "InputActionValue.h"
 #include "../Common/WeaponTypes.h"
+#include "SoulInventoryComponent.h"
 #include "SoulCharacter.generated.h"
 
 class USpringArmComponent;
@@ -12,6 +13,7 @@ class USoulCharacterStatComponent;
 class ASoulLadderActor;
 class USoulWeaponComponent;
 class USoulWeaponData;
+class USoulInventoryComponent;
 
 DECLARE_MULTICAST_DELEGATE(FOnAttackEndDelegate);
 DECLARE_MULTICAST_DELEGATE(FOnAutoFaceEndDelegate);
@@ -293,4 +295,7 @@ protected:
 
 	UPROPERTY(EditDefaultsOnly, Category = "Weapon")
 	TObjectPtr<class USoulWeaponData> DefaultGunData;
+
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Components", meta = (AllowPrivateAccess = "true"))
+	TObjectPtr<USoulInventoryComponent> InventoryComponent;
 };

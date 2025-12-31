@@ -6,6 +6,8 @@
 #include "GameSettingSaveData.h"
 #include "../UI/SoulCharacterStatWidget.h"
 #include "../Character/SoulCharacterStatComponent.h"
+#include "../UI/InventoryWidget.h"
+#include "../Character/SoulInventoryComponent.h"
 
 #include "Blueprint/UserWidget.h"
 #include "EnhancedInputComponent.h"
@@ -58,6 +60,14 @@ void ASoulPlayerController::OnPossess(APawn* InPawn)
 
     AddDefaultMappingContext();
     BindStatComponent();
+    if (ASoulCharacter* SoulCharacter = GetSoulCharacter())
+    {
+        CachedInventoryComponent = SoulCharacter->InventoryComponent;
+    }
+    else
+    {
+        CachedInventoryComponent.Reset();
+    }
     RefreshStatusWidget();
 }
 
@@ -75,6 +85,13 @@ void ASoulPlayerController::OnUnPossess()
     }
 
     CachedStatComponent.Reset();
+
+    CachedInventoryComponent.Reset();
+
+    if (InventoryWidget)
+    {
+        InventoryWidget->SetInventoryComponent(nullptr);
+    }
 }
 
 void ASoulPlayerController::EndPlay(const EEndPlayReason::Type EndPlayReason)
@@ -147,7 +164,7 @@ void ASoulPlayerController::ShowInteractPrompt(bool bShow, const FText& Text)
 TArray<FPlayerActionKeyMapping> ASoulPlayerController::GetRebindableActions() const
 {
     TArray<FPlayerActionKeyMapping> Actions;
-    Actions.Reserve(9);
+    Actions.Reserve(10);
 
     Actions.Add({ SprintAction, FText::FromString(TEXT("Sprint")) });
     Actions.Add({ AttackAction, FText::FromString(TEXT("Attack")) });
@@ -158,6 +175,7 @@ TArray<FPlayerActionKeyMapping> ASoulPlayerController::GetRebindableActions() co
     Actions.Add({ InteractAction, FText::FromString(TEXT("Interact")) });
     Actions.Add({ PauseMenuAction, FText::FromString(TEXT("Pause")) });
     Actions.Add({ StatusAction, FText::FromString(TEXT("Status")) });
+    Actions.Add({ InventoryAction, FText::FromString(TEXT("Inventory")) });
 
     Actions.RemoveAll([](const FPlayerActionKeyMapping& Mapping)
         {
@@ -415,6 +433,8 @@ void ASoulPlayerController::BindInputActions()
         EnhancedInputComponent->BindAction(PauseMenuAction, ETriggerEvent::Started, this, &ASoulPlayerController::TogglePauseMenu);
 
         EnhancedInputComponent->BindAction(StatusAction, ETriggerEvent::Started, this, &ASoulPlayerController::HandleToggleStatus);
+
+        EnhancedInputComponent->BindAction(InventoryAction, ETriggerEvent::Started, this, &ASoulPlayerController::HandleToggleInventory);
     }
 }
 
@@ -589,8 +609,12 @@ void ASoulPlayerController::ClosePauseMenu()
     SetPause(false);
     bShowMouseCursor = false;
 
-    FInputModeGameOnly InputMode;
-    SetInputMode(InputMode);
+    if (!bInventoryOpen && !bStatusWidgetOpen)
+    {
+        FInputModeGameOnly InputMode;
+        SetInputMode(InputMode);
+    }
+
 
     bPauseMenuOpen = false;
 }
@@ -718,12 +742,15 @@ void ASoulPlayerController::CloseStatusWidget()
         CharacterStatWidget->RemoveFromParent();
     }
 
-    bShowMouseCursor = false;
-
-    FInputModeGameOnly InputMode;
-    SetInputMode(InputMode);
-
     bStatusWidgetOpen = false;
+
+    if (!bPauseMenuOpen && !bInventoryOpen)
+    {
+        bShowMouseCursor = false;
+
+        FInputModeGameOnly InputMode;
+        SetInputMode(InputMode);
+    }
 }
 
 void ASoulPlayerController::RefreshStatusWidget()
@@ -741,7 +768,7 @@ void ASoulPlayerController::RefreshStatusWidget()
     {
         CharacterStatWidget->RefreshStats(nullptr);
     }
-}
+}   
 
 void ASoulPlayerController::BindStatComponent()
 {
@@ -789,5 +816,76 @@ void ASoulPlayerController::OnRequestAdjust(ECharacterStatType StatType, int32 D
         {
             RefreshStatusWidget();
         }
+    }
+}
+
+void ASoulPlayerController::HandleToggleInventory(const FInputActionValue& Value)
+{
+    ToggleInventory();
+}
+
+void ASoulPlayerController::ToggleInventory()
+{
+    if (bPauseMenuOpen)
+    {
+        return;
+    }
+
+    if (bInventoryOpen)
+    {
+        CloseInventory();
+    }
+    else
+    {
+        OpenInventory();
+    }
+}
+
+void ASoulPlayerController::OpenInventory()
+{
+    if (!InventoryWidget && InventoryWidgetClass)
+    {
+        InventoryWidget = CreateWidget<UInventoryWidget>(this, InventoryWidgetClass);
+    }
+
+    if (!InventoryWidget)
+    {
+        UE_LOG(LogTemp, Warning, TEXT("InventoryWidgetClass is not set on PlayerController."));
+        return;
+    }
+
+    InventoryWidget->SetInventoryComponent(CachedInventoryComponent.Get());
+
+    if (!InventoryWidget->IsInViewport())
+    {
+        InventoryWidget->AddToViewport(60);
+    }
+
+    bShowMouseCursor = true;
+
+    FInputModeGameAndUI InputMode;
+    InputMode.SetHideCursorDuringCapture(false);
+    InputMode.SetLockMouseToViewportBehavior(EMouseLockMode::DoNotLock);
+    InputMode.SetWidgetToFocus(InventoryWidget ? InventoryWidget->TakeWidget() : TSharedPtr<SWidget>());
+    SetInputMode(InputMode);
+
+    bInventoryOpen = true;
+}
+
+void ASoulPlayerController::CloseInventory()
+{
+    if (InventoryWidget && InventoryWidget->IsInViewport())
+    {
+        InventoryWidget->RemoveFromParent();
+    }
+
+    bInventoryOpen = false;
+
+    if (!bPauseMenuOpen && !bStatusWidgetOpen)
+    {
+        bShowMouseCursor = false;
+
+        FInputModeGameOnly InputMode;
+        SetInputMode(InputMode);
     }
 }
