@@ -11,6 +11,11 @@ void USoulInventoryComponent::BeginPlay()
     Super::BeginPlay();
 
     SetSlotCount(InitialSlotCount);
+
+    if (InitialPotionCharges > 0)
+    {
+        GainItem(EInventoryItemType::Potion, InitialPotionCharges);
+    }
 }
 
 void USoulInventoryComponent::SetSlotCount(int32 NewSlotCount)

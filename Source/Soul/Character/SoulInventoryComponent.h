@@ -42,6 +42,9 @@ protected:
     UPROPERTY(EditAnywhere, Category = "Inventory")
     int32 EnhancementStoneMaxStack = 99;
 
+    UPROPERTY(EditAnywhere, Category = "Inventory", meta = (ClampMin = 0))
+    int32 InitialPotionCharges = 2;
+
 private:
     UPROPERTY()
     TArray<FInventorySlot> Slots;
