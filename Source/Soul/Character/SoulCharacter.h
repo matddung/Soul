@@ -222,7 +222,7 @@ protected:
 	bool bDodgeInvincible = false;
 
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Components")
-	TObjectPtr<USoulCharacterStatComponent> StatComp;
+	TObjectPtr<USoulCharacterStatComponent> StatComponent;
 
 	UPROPERTY(VisibleInstanceOnly, BlueprintReadOnly, Category = "Movement", meta = (AllowPrivateAccess = "true"))
 	bool bIsDead = false;
@@ -297,5 +297,5 @@ protected:
 	TObjectPtr<class USoulWeaponData> DefaultGunData;
 
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Components", meta = (AllowPrivateAccess = "true"))
-	TObjectPtr<USoulInventoryComponent> InventoryComponent;
+	TObjectPtr<USoulInventoryComponent> InventoryComp;
 };

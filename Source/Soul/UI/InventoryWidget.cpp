@@ -13,6 +13,10 @@
 #include "Components/VerticalBoxSlot.h"
 #include "Input/Reply.h"
 #include "InputCoreTypes.h"
+#include "Components/Button.h"
+#include "Components/HorizontalBox.h"
+#include "Components/HorizontalBoxSlot.h"
+#include "Components/Spacer.h"
 
 void UInventorySlotBorder::InitializeSlot(UInventoryWidget* InOwner, int32 InSlotIndex)
 {
@@ -118,6 +122,7 @@ void UInventoryWidget::BuildGrid()
 {
     EnsureRootPanel();
     EnsureContextMenu();
+    EnsureRemoveQuantityDialog();
 
     if (!GridPanel)
     {
@@ -397,9 +402,294 @@ void UInventoryWidget::EnsureContextMenu()
     RefreshQuickSlotSelectors();
 }
 
+void UInventoryWidget::EnsureRemoveQuantityDialog()
+{
+    if (RemoveQuantityBorder || !WidgetTree)
+    {
+        return;
+    }
+
+    EnsureRootPanel();
+
+    if (!RootPanel)
+    {
+        return;
+    }
+
+    RemoveDialogBlocker = WidgetTree->ConstructWidget<UBorder>(UBorder::StaticClass(), TEXT("RemoveDialogBlocker"));
+    RemoveQuantityBorder = WidgetTree->ConstructWidget<UBorder>(UBorder::StaticClass(), TEXT("RemoveQuantityDialog"));
+
+    if (!RemoveDialogBlocker || !RemoveQuantityBorder)
+    {
+        return;
+    }
+
+    RemoveDialogBlocker->OnMouseButtonDownEvent.BindDynamic(this, &UInventoryWidget::HandleRemoveDialogBlockerMouseButtonDown);
+    RemoveDialogBlocker->SetVisibility(ESlateVisibility::Collapsed);
+    RemoveDialogBlocker->SetHorizontalAlignment(HAlign_Fill);
+    RemoveDialogBlocker->SetVerticalAlignment(VAlign_Fill);
+    RemoveDialogBlocker->SetBrushColor(FLinearColor(0.0f, 0.0f, 0.0f, 0.65f));
+
+    RemoveQuantityBorder->SetPadding(FMargin(16.0f, 14.0f));
+    RemoveQuantityBorder->SetBrushColor(FLinearColor(0.04f, 0.04f, 0.04f, 0.95f));
+    RemoveQuantityBorder->SetHorizontalAlignment(HAlign_Center);
+    RemoveQuantityBorder->SetVerticalAlignment(VAlign_Center);
+    RemoveQuantityBorder->SetVisibility(ESlateVisibility::Collapsed);
+
+    RemoveQuantityBox = WidgetTree->ConstructWidget<UVerticalBox>(UVerticalBox::StaticClass(), TEXT("RemoveQuantityBox"));
+    if (RemoveQuantityBox)
+    {
+        RemoveQuantityBorder->SetContent(RemoveQuantityBox);
+
+        if (UTextBlock* TitleText = WidgetTree->ConstructWidget<UTextBlock>(UTextBlock::StaticClass()))
+        {
+            TitleText->SetText(NSLOCTEXT("InventoryWidget", "RemoveDialogTitle", "Remove Items"));
+            TitleText->SetJustification(ETextJustify::Center);
+
+            if (UVerticalBoxSlot* TitleSlot = RemoveQuantityBox->AddChildToVerticalBox(TitleText))
+            {
+                TitleSlot->SetHorizontalAlignment(HAlign_Center);
+                TitleSlot->SetPadding(FMargin(0.0f, 0.0f, 0.0f, 6.0f));
+            }
+        }
+
+        if (UTextBlock* InstructionText = WidgetTree->ConstructWidget<UTextBlock>(UTextBlock::StaticClass()))
+        {
+            InstructionText->SetText(NSLOCTEXT("InventoryWidget", "RemoveDialogInstruction", "Quantity"));
+            InstructionText->SetJustification(ETextJustify::Center);
+
+            if (UVerticalBoxSlot* InstructionSlot = RemoveQuantityBox->AddChildToVerticalBox(InstructionText))
+            {
+                InstructionSlot->SetHorizontalAlignment(HAlign_Center);
+                InstructionSlot->SetPadding(FMargin(0.0f, 0.0f, 0.0f, 4.0f));
+            }
+        }
+
+        RemoveQuantityValueText = WidgetTree->ConstructWidget<UTextBlock>(UTextBlock::StaticClass());
+        if (RemoveQuantityValueText)
+        {
+            RemoveQuantityValueText->SetJustification(ETextJustify::Center);
+
+            if (UVerticalBoxSlot* QuantitySlot = RemoveQuantityBox->AddChildToVerticalBox(RemoveQuantityValueText))
+            {
+                QuantitySlot->SetHorizontalAlignment(HAlign_Center);
+                QuantitySlot->SetPadding(FMargin(0.0f, 4.0f, 0.0f, 8.0f));
+            }
+        }
+
+        if (UHorizontalBox* AdjustBox = WidgetTree->ConstructWidget<UHorizontalBox>(UHorizontalBox::StaticClass()))
+        {
+            auto AddAdjustButton = [&](const FText& Label, void (UInventoryWidget::* Handler)())
+                {
+                    if (UButton* Button = WidgetTree->ConstructWidget<UButton>(UButton::StaticClass()))
+                    {
+                        if (Handler == &UInventoryWidget::HandleRemoveMinusTen)
+                        {
+                            Button->OnClicked.AddDynamic(this, &UInventoryWidget::HandleRemoveMinusTen);
+                        }
+                        else if (Handler == &UInventoryWidget::HandleRemoveMinusOne)
+                        {
+                            Button->OnClicked.AddDynamic(this, &UInventoryWidget::HandleRemoveMinusOne);
+                        }
+                        else if (Handler == &UInventoryWidget::HandleRemovePlusOne)
+                        {
+                            Button->OnClicked.AddDynamic(this, &UInventoryWidget::HandleRemovePlusOne);
+                        }
+                        else if (Handler == &UInventoryWidget::HandleRemovePlusTen)
+                        {
+                            Button->OnClicked.AddDynamic(this, &UInventoryWidget::HandleRemovePlusTen);
+                        }
+
+                        if (UTextBlock* ButtonText = WidgetTree->ConstructWidget<UTextBlock>(UTextBlock::StaticClass()))
+                        {
+                            ButtonText->SetText(Label);
+                            ButtonText->SetJustification(ETextJustify::Center);
+                            Button->SetContent(ButtonText);
+                        }
+
+                        if (UHorizontalBoxSlot* Slot = AdjustBox->AddChildToHorizontalBox(Button))
+                        {
+                            Slot->SetPadding(FMargin(4.0f, 8.0f));
+                        }
+                    }
+                };
+
+            AddAdjustButton(NSLOCTEXT("InventoryWidget", "RemoveMinusTen", "-10"), &UInventoryWidget::HandleRemoveMinusTen);
+            AddAdjustButton(NSLOCTEXT("InventoryWidget", "RemoveMinusOne", "-1"), &UInventoryWidget::HandleRemoveMinusOne);
+            AddAdjustButton(NSLOCTEXT("InventoryWidget", "RemovePlusOne", "+1"), &UInventoryWidget::HandleRemovePlusOne);
+            AddAdjustButton(NSLOCTEXT("InventoryWidget", "RemovePlusTen", "+10"), &UInventoryWidget::HandleRemovePlusTen);
+
+            if (UVerticalBoxSlot* AdjustSlot = RemoveQuantityBox->AddChildToVerticalBox(AdjustBox))
+            {
+                AdjustSlot->SetHorizontalAlignment(HAlign_Center);
+                AdjustSlot->SetPadding(FMargin(0.0f, 4.0f, 0.0f, 6.0f));
+            }
+        }
+
+        if (USpacer* Spacer = WidgetTree->ConstructWidget<USpacer>(USpacer::StaticClass()))
+        {
+            Spacer->SetSize(FVector2D(1.0f, 1.0f));
+
+            if (UVerticalBoxSlot* SpacerSlot = RemoveQuantityBox->AddChildToVerticalBox(Spacer))
+            {
+                SpacerSlot->SetSize(FSlateChildSize(ESlateSizeRule::Fill));
+            }
+        }
+
+        if (UHorizontalBox* ConfirmationBox = WidgetTree->ConstructWidget<UHorizontalBox>(UHorizontalBox::StaticClass()))
+        {
+            if (UButton* ConfirmButton = WidgetTree->ConstructWidget<UButton>(UButton::StaticClass()))
+            {
+                ConfirmButton->OnClicked.AddDynamic(this, &UInventoryWidget::ConfirmRemoveQuantity);
+
+                if (UTextBlock* ConfirmText = WidgetTree->ConstructWidget<UTextBlock>(UTextBlock::StaticClass()))
+                {
+                    ConfirmText->SetText(NSLOCTEXT("InventoryWidget", "RemoveConfirm", "Check"));
+                    ConfirmText->SetJustification(ETextJustify::Center);
+                    ConfirmButton->SetContent(ConfirmText);
+                }
+
+                if (UHorizontalBoxSlot* HBSlot = ConfirmationBox->AddChildToHorizontalBox(ConfirmButton))
+                {
+                    HBSlot->SetPadding(FMargin(6.0f, 10.0f, 4.0f, 0.0f));
+                }
+            }
+
+            if (UButton* CancelButton = WidgetTree->ConstructWidget<UButton>(UButton::StaticClass()))
+            {
+                CancelButton->OnClicked.AddDynamic(this, &UInventoryWidget::CancelRemoveQuantity);
+
+                if (UTextBlock* CancelText = WidgetTree->ConstructWidget<UTextBlock>(UTextBlock::StaticClass()))
+                {
+                    CancelText->SetText(NSLOCTEXT("InventoryWidget", "RemoveCancel", "Cancel"));
+                    CancelText->SetJustification(ETextJustify::Center);
+                    CancelButton->SetContent(CancelText);
+                }
+
+                if (UHorizontalBoxSlot* HBSlot = ConfirmationBox->AddChildToHorizontalBox(CancelButton))
+                {
+                    HBSlot->SetPadding(FMargin(4.0f, 10.0f, 6.0f, 0.0f));
+                }
+            }
+
+            if (UVerticalBoxSlot* ConfirmationSlot = RemoveQuantityBox->AddChildToVerticalBox(ConfirmationBox))
+            {
+                ConfirmationSlot->SetHorizontalAlignment(HAlign_Center);
+                ConfirmationSlot->SetPadding(FMargin(0.0f, 6.0f, 0.0f, 0.0f));
+            }
+        }
+    }
+
+    if (UCanvasPanelSlot* BlockerSlot = RootPanel->AddChildToCanvas(RemoveDialogBlocker))
+    {
+        BlockerSlot->SetAutoSize(false);
+        BlockerSlot->SetOffsets(FMargin(0.0f));
+        BlockerSlot->SetAnchors(FAnchors(0.0f, 0.0f, 1.0f, 1.0f));
+        BlockerSlot->SetZOrder(19);
+    }
+
+    if (UCanvasPanelSlot* DialogSlot = RootPanel->AddChildToCanvas(RemoveQuantityBorder))
+    {
+        DialogSlot->SetAutoSize(false);
+        DialogSlot->SetAnchors(FAnchors(0.5f, 0.5f, 0.5f, 0.5f));
+        DialogSlot->SetAlignment(FVector2D(0.5f, 0.5f));
+        DialogSlot->SetSize(FVector2D(520.0f, 320.0f));
+        DialogSlot->SetZOrder(20);
+    }
+}
+
+void UInventoryWidget::ShowRemoveQuantityDialog(int32 MaxQuantity)
+{
+    EnsureRemoveQuantityDialog();
+
+    if (!RemoveQuantityBorder || !RemoveDialogBlocker)
+    {
+        return;
+    }
+
+    MaxRemoveQuantity = FMath::Max(1, MaxQuantity);
+    SelectedRemoveQuantity = 1;
+
+    UpdateRemoveQuantityDisplay();
+
+    RemoveQuantityBorder->SetVisibility(ESlateVisibility::Visible);
+    RemoveDialogBlocker->SetVisibility(ESlateVisibility::Visible);
+}
+
+void UInventoryWidget::HideRemoveQuantityDialog()
+{
+    if (RemoveQuantityBorder)
+    {
+        RemoveQuantityBorder->SetVisibility(ESlateVisibility::Collapsed);
+    }
+
+    if (RemoveDialogBlocker)
+    {
+        RemoveDialogBlocker->SetVisibility(ESlateVisibility::Collapsed);
+    }
+
+    ResetMenuSelection();
+}
+
+void UInventoryWidget::UpdateRemoveQuantityDisplay()
+{
+    if (!RemoveQuantityValueText)
+    {
+        return;
+    }
+
+    const FText DisplayText = FText::Format(NSLOCTEXT("InventoryWidget", "RemoveQuantityLabel", "{0} / {1}"), FText::AsNumber(SelectedRemoveQuantity), FText::AsNumber(MaxRemoveQuantity));
+    RemoveQuantityValueText->SetText(DisplayText);
+}
+
+void UInventoryWidget::AdjustRemoveQuantity(int32 Delta)
+{
+    SelectedRemoveQuantity = FMath::Clamp(SelectedRemoveQuantity + Delta, 1, MaxRemoveQuantity);
+    UpdateRemoveQuantityDisplay();
+}
+
+void UInventoryWidget::HandleRemoveMinusTen()
+{
+    AdjustRemoveQuantity(-10);
+}
+
+void UInventoryWidget::HandleRemoveMinusOne()
+{
+    AdjustRemoveQuantity(-1);
+}
+
+void UInventoryWidget::HandleRemovePlusOne()
+{
+    AdjustRemoveQuantity(1);
+}
+
+void UInventoryWidget::HandleRemovePlusTen()
+{
+    AdjustRemoveQuantity(10);
+}
+
+void UInventoryWidget::ConfirmRemoveQuantity()
+{
+    if (CachedInventoryComponent.IsValid() && CachedSlots.IsValidIndex(CachedContextSlotIndex))
+    {
+        const int32 QuantityToRemove = FMath::Clamp(SelectedRemoveQuantity, 1, MaxRemoveQuantity);
+        CachedInventoryComponent->UseItemAtIndex(CachedContextSlotIndex, QuantityToRemove);
+    }
+
+    HideRemoveQuantityDialog();
+    HideContextMenu();
+}
+
+void UInventoryWidget::CancelRemoveQuantity()
+{
+    HideRemoveQuantityDialog();
+    HideContextMenu();
+}
+
 void UInventoryWidget::ShowContextMenu(int32 SlotIndex, const FVector2D& ScreenSpacePosition)
 {
     EnsureContextMenu();
+    HideRemoveQuantityDialog();
 
     if (!ContextMenuBorder || !RootPanel)
     {
@@ -429,7 +719,7 @@ void UInventoryWidget::ShowContextMenu(int32 SlotIndex, const FVector2D& ScreenS
     }
 }
 
-void UInventoryWidget::HideContextMenu()
+void UInventoryWidget::HideContextMenu(bool bResetSelection /*= true*/)
 {
     if (ContextMenuBorder)
     {
@@ -441,7 +731,10 @@ void UInventoryWidget::HideContextMenu()
         ContextMenuBlocker->SetVisibility(ESlateVisibility::Collapsed);
     }
 
-    ResetMenuSelection();
+    if (bResetSelection)
+    {
+        ResetMenuSelection();
+    }
 }
 
 FEventReply UInventoryWidget::HandleMenuBlockerMouseButtonDown(FGeometry MyGeometry, const FPointerEvent& MouseEvent)
@@ -456,6 +749,21 @@ FEventReply UInventoryWidget::HandleMenuBlockerMouseButtonDown(FGeometry MyGeome
     }
 
     HideContextMenu();
+    return UWidgetBlueprintLibrary::Handled();
+}
+
+FEventReply UInventoryWidget::HandleRemoveDialogBlockerMouseButtonDown(FGeometry MyGeometry, const FPointerEvent& MouseEvent)
+{
+    if (RemoveQuantityBorder)
+    {
+        const FGeometry& DialogGeometry = RemoveQuantityBorder->GetCachedGeometry();
+        if (DialogGeometry.IsUnderLocation(MouseEvent.GetScreenSpacePosition()))
+        {
+            return UWidgetBlueprintLibrary::Unhandled();
+        }
+    }
+
+    CancelRemoveQuantity();
     return UWidgetBlueprintLibrary::Handled();
 }
 
@@ -494,6 +802,14 @@ void UInventoryWidget::HandleRemoveItem()
     if (CachedInventoryComponent.IsValid() && CachedSlots.IsValidIndex(CachedContextSlotIndex))
     {
         const int32 Quantity = CachedSlots[CachedContextSlotIndex].Item.Quantity;
+
+        if (Quantity > 1)
+        {
+            ShowRemoveQuantityDialog(Quantity);
+            HideContextMenu(false);
+            return;
+        }
+
         if (Quantity > 0)
         {
             CachedInventoryComponent->UseItemAtIndex(CachedContextSlotIndex, Quantity);
@@ -539,11 +855,10 @@ void UInventoryWidget::UpdateMenuEntryStates()
             const bool bKeepWhenEmpty = Item.Definition.EmptyPolicy == EInventoryEmptyPolicy::KeepWhenEmpty;
 
             bCanUse = bHasQuantity;
-            bCanRemove = bHasQuantity || (!bKeepWhenEmpty && Item.Definition.EmptyPolicy == EInventoryEmptyPolicy::RemoveWhenEmpty);
-
-            if (bKeepWhenEmpty && !bHasQuantity)
+            
+            if (!bKeepWhenEmpty)
             {
-                bCanRemove = false;
+                bCanRemove = bHasQuantity || Item.Definition.EmptyPolicy == EInventoryEmptyPolicy::RemoveWhenEmpty;
             }
         }
     }
@@ -566,5 +881,6 @@ void UInventoryWidget::OnInventoryChanged()
         RefreshInventory(CachedInventoryComponent->GetSlots(), CachedInventoryComponent->GetSlotCount());
     }
 
+    HideRemoveQuantityDialog();
     HideContextMenu();
 }

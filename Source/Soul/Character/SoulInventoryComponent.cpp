@@ -16,6 +16,11 @@ void USoulInventoryComponent::BeginPlay()
     {
         GainItem(EInventoryItemType::Potion, InitialPotionCharges);
     }
+
+    if (InitialEnhancementStones > 0)
+    {
+        GainItem(EInventoryItemType::EnhancementStone, InitialEnhancementStones);
+    }
 }
 
 void USoulInventoryComponent::SetSlotCount(int32 NewSlotCount)

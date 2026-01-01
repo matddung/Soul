@@ -62,7 +62,7 @@ void ASoulPlayerController::OnPossess(APawn* InPawn)
     BindStatComponent();
     if (ASoulCharacter* SoulCharacter = GetSoulCharacter())
     {
-        CachedInventoryComponent = SoulCharacter->InventoryComponent;
+        CachedInventoryComponent = SoulCharacter->InventoryComp;
     }
     else
     {
@@ -779,7 +779,7 @@ void ASoulPlayerController::BindStatComponent()
 
     if (ASoulCharacter* SoulCharacter = GetSoulCharacter())
     {
-        CachedStatComponent = SoulCharacter->StatComp;
+        CachedStatComponent = SoulCharacter->StatComponent;
     }
     else
     {

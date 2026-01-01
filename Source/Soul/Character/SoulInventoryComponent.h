@@ -45,6 +45,9 @@ protected:
     UPROPERTY(EditAnywhere, Category = "Inventory", meta = (ClampMin = 0))
     int32 InitialPotionCharges = 2;
 
+    UPROPERTY(EditAnywhere, Category = "Inventory", meta = (ClampMin = 0))
+    int32 InitialEnhancementStones = 19;
+
 private:
     UPROPERTY()
     TArray<FInventorySlot> Slots;

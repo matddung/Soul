@@ -13,6 +13,9 @@ class UUniformGridPanel;
 class UVerticalBox;
 class USoulInventoryComponent;
 class UInventoryWidget;
+class UButton;
+class UHorizontalBox;
+class UTextBlock;
 
 UENUM()
 enum class EInventoryContextAction : uint8
@@ -86,11 +89,37 @@ protected:
     void EnsureRootPanel();
     void EnsureContextMenu();
     void ShowContextMenu(int32 SlotIndex, const FVector2D& ScreenSpacePosition);
-    void HideContextMenu();
+    void HideContextMenu(bool bResetSelection = true);
     void RefreshQuickSlotSelectors();
     FEventReply HandleMenuBlockerMouseButtonDown(FGeometry MyGeometry, const FPointerEvent& MouseEvent);
     void HandleUseItem();
     void HandleRemoveItem();
+    void ShowRemoveQuantityDialog(int32 MaxQuantity);
+    void HideRemoveQuantityDialog();
+    void UpdateRemoveQuantityDisplay();
+    void AdjustRemoveQuantity(int32 Delta);
+
+    UFUNCTION()
+    void ConfirmRemoveQuantity();
+
+    UFUNCTION()
+    void CancelRemoveQuantity();
+
+    UFUNCTION()
+    void HandleRemoveMinusTen();
+
+    UFUNCTION()
+    void HandleRemoveMinusOne();
+
+    UFUNCTION()
+    void HandleRemovePlusOne();
+
+    UFUNCTION()
+    void HandleRemovePlusTen();
+    void EnsureRemoveQuantityDialog();
+
+    UFUNCTION()
+    FEventReply HandleRemoveDialogBlockerMouseButtonDown(FGeometry MyGeometry, const FPointerEvent& MouseEvent);
     void ToggleQuickSlotSelector();
     void AssignQuickSlot(int32 SlotNumber);
     void ResetMenuSelection();
@@ -124,6 +153,18 @@ protected:
     UPROPERTY()
     UInventoryMenuEntryBorder* RemoveMenuEntry = nullptr;
 
+    UPROPERTY()
+    UBorder* RemoveDialogBlocker = nullptr;
+
+    UPROPERTY()
+    UBorder* RemoveQuantityBorder = nullptr;
+
+    UPROPERTY()
+    UVerticalBox* RemoveQuantityBox = nullptr;
+
+    UPROPERTY()
+    UTextBlock* RemoveQuantityValueText = nullptr;
+
     UPROPERTY(EditAnywhere, Category = "Inventory", meta = (ClampMin = 1))
     int32 DefaultColumns = 4;
 
@@ -131,10 +172,13 @@ protected:
     int32 DefaultSlotCount = 16;
 
     UPROPERTY(EditAnywhere, Category = "Inventory", meta = (ClampMin = 1))
-    int32 QuickSlotCount = 4;
+    int32 QuickSlotCount = 2;
 
     TWeakObjectPtr<USoulInventoryComponent> CachedInventoryComponent;
     TArray<FInventorySlot> CachedSlots;
     int32 CachedSlotCount = 0;
     int32 CachedContextSlotIndex = INDEX_NONE;
+
+    int32 MaxRemoveQuantity = 1;
+    int32 SelectedRemoveQuantity = 1;
 };

@@ -44,11 +44,11 @@ ASoulCharacter::ASoulCharacter()
 
 	UpdateMovementSpeed();
 
-	StatComp = CreateDefaultSubobject<USoulCharacterStatComponent>(TEXT("StatComponent"));
+	StatComponent = CreateDefaultSubobject<USoulCharacterStatComponent>(TEXT("StatComponent"));
 
 	WeaponComp = CreateDefaultSubobject<USoulWeaponComponent>(TEXT("WeaponComp"));
 
-	InventoryComponent = CreateDefaultSubobject<USoulInventoryComponent>(TEXT("InventoryComponent"));
+	InventoryComp = CreateDefaultSubobject<USoulInventoryComponent>(TEXT("InventoryComponent"));
 }
 
 void ASoulCharacter::BeginPlay()
@@ -71,9 +71,9 @@ void ASoulCharacter::BeginPlay()
 		WeaponComp->GiveWeapon(DefaultSwordData);
 	}
 
-	if (StatComp)
+	if (StatComponent)
 	{
-		StatComp->RecalculateDerivedStats();
+		StatComponent->RecalculateDerivedStats();
 	}
 
 	CurrentWeaponType = EWeaponType::Empty;
@@ -111,9 +111,9 @@ void ASoulCharacter::PostInitializeComponents()
 	AnimInstance->OnDodgeIFrameOff.AddUObject(this, &ASoulCharacter::EndDodgeInvincible);
 	AnimInstance->OnDodgeEnd.AddUObject(this, &ASoulCharacter::OnDodgeFinished);
 	
-	if (StatComp)
+	if (StatComponent)
 	{
-		StatComp->OnDead.AddDynamic(this, &ASoulCharacter::HandleDead);
+		StatComponent->OnDead.AddDynamic(this, &ASoulCharacter::HandleDead);
 	}
 
 	AnimInstance->OnLadderTopMountEnd.AddLambda([this]()
@@ -199,16 +199,16 @@ float ASoulCharacter::TakeDamage(float DamageAmount, FDamageEvent const& DamageE
 
 	float AppliedDamage = 0;
 
-	if (StatComp)
+	if (StatComponent)
 	{
-		if (FinalDamage > 0 && StatComp->ApplyDamage(FinalDamage))
+		if (FinalDamage > 0 && StatComponent->ApplyDamage(FinalDamage))
 		{
 			OnHitDamage();
 			SpawnDamageText(this, FinalDamage);
 			AppliedDamage = FinalDamage;
 		}
 
-		UE_LOG(LogTemp, Log, TEXT("TakeDamage | Damage: %.2f | HP: %.2f / %.2f"), FinalDamage, StatComp->HP, StatComp->MaxHP);
+		UE_LOG(LogTemp, Log, TEXT("TakeDamage | Damage: %.2f | HP: %.2f / %.2f"), FinalDamage, StatComponent->HP, StatComponent->MaxHP);
 	}
 
 	return AppliedDamage;
@@ -218,9 +218,9 @@ void ASoulCharacter::Reset()
 {
 	Super::Reset();
 
-	if (StatComp)
+	if (StatComponent)
 	{
-		StatComp->ResetCurrentToMax();
+		StatComponent->ResetCurrentToMax();
 	}
 }
 
@@ -615,7 +615,7 @@ void ASoulCharacter::DoGunShot()
 		{
 			if (HitActor->IsA<ACharacter>())
 			{
-				const float Damage = StatComp ? StatComp->GetGunDamage() : 0;
+				const float Damage = StatComponent ? StatComponent->GetGunDamage() : 0;
 
 				UGameplayStatics::ApplyPointDamage(HitActor, Damage, Direction, HitResult, GetController(), this, nullptr);
 
@@ -710,7 +710,7 @@ void ASoulCharacter::AttackCheck()
 		AActor* HitActor = HitResult.GetActor();
 		if (HitActor)
 		{
-			const float Damage = StatComp ? StatComp->GetSwordDamage() : 0;
+			const float Damage = StatComponent ? StatComponent->GetSwordDamage() : 0;
 
 			UGameplayStatics::ApplyPointDamage(HitActor, Damage, GetActorForwardVector(), HitResult, GetController(), this, nullptr);
 			UE_LOG(LogTemp, Warning, TEXT("Hit Actor Name : %s"), *HitActor->GetName());
