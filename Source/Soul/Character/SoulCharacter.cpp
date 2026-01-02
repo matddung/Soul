@@ -1291,3 +1291,19 @@ void ASoulCharacter::GiveGunFromBox(bool bAutoEquip)
 		UpdateMovementSpeed();
 	}
 }
+
+bool ASoulCharacter::EnhanceWeapon(EWeaponType Type)
+{
+	if (!StatComponent)
+	{
+		return false;
+	}
+
+	if (StatComponent->EnhanceWeapon(Type))
+	{
+		UE_LOG(LogTemp, Log, TEXT("Enhanced weapon %d"), static_cast<int32>(Type));
+		return true;
+	}
+
+	return false;
+}

@@ -46,17 +46,23 @@ void USoulCharacterStatWidget::RefreshStats(const USoulCharacterStatComponent* S
     UpdateStatRow(Txt_VIT, bHasStat ? StatComponent->VIT : 0);
     UpdateStatRow(Txt_END, bHasStat ? StatComponent->END : 0);
 
+    const int32 SwordEnhanceLevel = bHasStat ? StatComponent->GetSwordEnhancementLevel() : 0;
+    const int32 GunEnhanceLevel = bHasStat ? StatComponent->GetGunEnhancementLevel() : 0;
+
     const FCharacterDerivedStats CurrentDerived = bHasStat ? StatComponent->GetCurrentDerivedStats() : FCharacterDerivedStats();
     const FCharacterDerivedStats STRPreview = bHasStat ? StatComponent->GetPreviewDerivedStats(ECharacterStatType::STR) : FCharacterDerivedStats();
     const FCharacterDerivedStats DEXPreview = bHasStat ? StatComponent->GetPreviewDerivedStats(ECharacterStatType::DEX) : FCharacterDerivedStats();
     const FCharacterDerivedStats VITPreview = bHasStat ? StatComponent->GetPreviewDerivedStats(ECharacterStatType::VIT) : FCharacterDerivedStats();
     const FCharacterDerivedStats ENDPreview = bHasStat ? StatComponent->GetPreviewDerivedStats(ECharacterStatType::END) : FCharacterDerivedStats();
 
+    const FString SwordLabel = bHasStat ? FString::Printf(TEXT("Sword +%d"), SwordEnhanceLevel) : TEXT("Sword");
+    const FString GunLabel = bHasStat ? FString::Printf(TEXT("Gun +%d"), GunEnhanceLevel) : TEXT("Gun");
+
     UpdateDerivedRow(Txt_MaxHP, TEXT("HP"), CurrentDerived.MaxHP, CurrentDerived.MaxHP);
     UpdateDerivedRow(Txt_Stamina, TEXT("Stamina"), CurrentDerived.MaxStamina, CurrentDerived.MaxStamina);
     UpdateDerivedRow(Txt_StaminaRegen, TEXT("Regen"), CurrentDerived.StaminaRegenRate, CurrentDerived.StaminaRegenRate);
-    UpdateDerivedRow(Txt_SwordDamage, TEXT("Sword"), CurrentDerived.SwordDamage, CurrentDerived.SwordDamage);
-    UpdateDerivedRow(Txt_GunDamage, TEXT("Gun"), CurrentDerived.GunDamage, CurrentDerived.GunDamage);
+    UpdateDerivedRow(Txt_SwordDamage, SwordLabel, CurrentDerived.SwordDamage, CurrentDerived.SwordDamage);
+    UpdateDerivedRow(Txt_GunDamage, GunLabel, CurrentDerived.GunDamage, CurrentDerived.GunDamage);
 
     UpdateDerivedRow(Txt_StrEffect, TEXT("Sword Damage"), CurrentDerived.SwordDamage, STRPreview.SwordDamage);
     UpdateDerivedRow(Txt_DexEffect, TEXT("Gun Damage"), CurrentDerived.GunDamage, DEXPreview.GunDamage);

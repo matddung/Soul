@@ -1,5 +1,8 @@
 #include "InventoryWidget.h"
 #include "../Character/SoulInventoryComponent.h"
+#include "../Character/SoulCharacter.h"
+#include "../Character/SoulWeaponComponent.h"
+#include "../Character/SoulCharacterStatComponent.h"
 
 #include "Blueprint/WidgetTree.h"
 #include "Blueprint/WidgetBlueprintLibrary.h"
@@ -17,6 +20,7 @@
 #include "Components/HorizontalBox.h"
 #include "Components/HorizontalBoxSlot.h"
 #include "Components/Spacer.h"
+#include "Components/SizeBox.h"
 
 void UInventorySlotBorder::InitializeSlot(UInventoryWidget* InOwner, int32 InSlotIndex)
 {
@@ -123,6 +127,7 @@ void UInventoryWidget::BuildGrid()
     EnsureRootPanel();
     EnsureContextMenu();
     EnsureRemoveQuantityDialog();
+    EnsureEnhancementDialog();
 
     if (!GridPanel)
     {
@@ -598,6 +603,130 @@ void UInventoryWidget::EnsureRemoveQuantityDialog()
     }
 }
 
+void UInventoryWidget::EnsureEnhancementDialog()
+{
+    if (EnhancementDialogBorder || !WidgetTree)
+    {
+        return;
+    }
+
+    EnsureRootPanel();
+
+    if (!RootPanel)
+    {
+        return;
+    }
+
+    EnhancementDialogBlocker = WidgetTree->ConstructWidget<UBorder>(UBorder::StaticClass(), TEXT("EnhancementDialogBlocker"));
+    EnhancementDialogBorder = WidgetTree->ConstructWidget<UBorder>(UBorder::StaticClass(), TEXT("EnhancementDialog"));
+
+    if (!EnhancementDialogBlocker || !EnhancementDialogBorder)
+    {
+        return;
+    }
+
+    EnhancementDialogBlocker->OnMouseButtonDownEvent.BindDynamic(this, &UInventoryWidget::HandleEnhancementDialogBlockerMouseButtonDown);
+    EnhancementDialogBlocker->SetVisibility(ESlateVisibility::Collapsed);
+    EnhancementDialogBlocker->SetHorizontalAlignment(HAlign_Fill);
+    EnhancementDialogBlocker->SetVerticalAlignment(VAlign_Fill);
+    EnhancementDialogBlocker->SetBrushColor(FLinearColor(0.0f, 0.0f, 0.0f, 0.65f));
+
+    EnhancementDialogBorder->SetPadding(FMargin(24.0f, 20.0f));
+    EnhancementDialogBorder->SetBrushColor(FLinearColor(0.04f, 0.04f, 0.04f, 0.95f));
+    EnhancementDialogBorder->SetHorizontalAlignment(HAlign_Center);
+    EnhancementDialogBorder->SetVerticalAlignment(VAlign_Center);
+    EnhancementDialogBorder->SetVisibility(ESlateVisibility::Collapsed);
+
+    if (UVerticalBox* DialogBox = WidgetTree->ConstructWidget<UVerticalBox>(UVerticalBox::StaticClass(), TEXT("EnhancementDialogContent")))
+    {
+        EnhancementDialogBorder->SetContent(DialogBox);
+
+        if (UTextBlock* TitleText = WidgetTree->ConstructWidget<UTextBlock>(UTextBlock::StaticClass()))
+        {
+            TitleText->SetText(NSLOCTEXT("InventoryWidget", "EnhancementDialogTitle", "Select Weapon to Enhance"));
+            TitleText->SetJustification(ETextJustify::Center);
+
+            FSlateFontInfo TitleFont = TitleText->Font;
+            TitleFont.Size = 22;
+            TitleText->SetFont(TitleFont);
+
+            if (UVerticalBoxSlot* TitleSlot = DialogBox->AddChildToVerticalBox(TitleText))
+            {
+                TitleSlot->SetHorizontalAlignment(HAlign_Center);
+                TitleSlot->SetPadding(FMargin(0.0f, 0.0f, 0.0f, 18.0f));
+            }
+        }
+
+        EnhancementChoiceBox = WidgetTree->ConstructWidget<UHorizontalBox>(UHorizontalBox::StaticClass(), TEXT("EnhancementChoice"));
+        if (EnhancementChoiceBox)
+        {
+            auto CreateEnhanceButton = [&](const FText& Label, UButton*& OutButton)
+                {
+                    USizeBox* ButtonContainer = WidgetTree->ConstructWidget<USizeBox>(USizeBox::StaticClass());
+                    if (!ButtonContainer)
+                    {
+                        return;
+                    }
+
+                    ButtonContainer->SetWidthOverride(160.0f);
+                    ButtonContainer->SetHeightOverride(70.0f);
+
+                    OutButton = WidgetTree->ConstructWidget<UButton>(UButton::StaticClass());
+                    if (!OutButton)
+                    {
+                        return;
+                    }
+
+                    if (UTextBlock* ButtonText = WidgetTree->ConstructWidget<UTextBlock>(UTextBlock::StaticClass()))
+                    {
+                        ButtonText->SetText(Label);
+                        ButtonText->SetJustification(ETextJustify::Center);
+
+                        FSlateFontInfo ButtonFont = ButtonText->Font;
+                        ButtonFont.Size = 20;
+                        ButtonText->SetFont(ButtonFont);
+                        OutButton->SetContent(ButtonText);
+                    }
+
+                    ButtonContainer->AddChild(OutButton);
+
+                    if (UHorizontalBoxSlot* Slot = EnhancementChoiceBox->AddChildToHorizontalBox(ButtonContainer))
+                    {
+                        Slot->SetPadding(FMargin(12.0f, 4.0f));
+                        Slot->SetHorizontalAlignment(HAlign_Center);
+                        Slot->SetVerticalAlignment(VAlign_Center);
+                    }
+                };
+
+            CreateEnhanceButton(NSLOCTEXT("InventoryWidget", "EnhanceSword", "Sword"), SwordEnhanceButton);
+            CreateEnhanceButton(NSLOCTEXT("InventoryWidget", "EnhanceGun", "Gun"), GunEnhanceButton);
+
+            if (UVerticalBoxSlot* ButtonsSlot = DialogBox->AddChildToVerticalBox(EnhancementChoiceBox))
+            {
+                ButtonsSlot->SetHorizontalAlignment(HAlign_Center);
+                ButtonsSlot->SetPadding(FMargin(0.0f, 4.0f, 0.0f, 0.0f));
+            }
+        }
+    }
+
+    if (UCanvasPanelSlot* BlockerSlot = RootPanel->AddChildToCanvas(EnhancementDialogBlocker))
+    {
+        BlockerSlot->SetAutoSize(false);
+        BlockerSlot->SetOffsets(FMargin(0.0f));
+        BlockerSlot->SetAnchors(FAnchors(0.0f, 0.0f, 1.0f, 1.0f));
+        BlockerSlot->SetZOrder(19);
+    }
+
+    if (UCanvasPanelSlot* DialogSlot = RootPanel->AddChildToCanvas(EnhancementDialogBorder))
+    {
+        DialogSlot->SetAutoSize(false);
+        DialogSlot->SetAnchors(FAnchors(0.5f, 0.5f, 0.5f, 0.5f));
+        DialogSlot->SetAlignment(FVector2D(0.5f, 0.5f));
+        DialogSlot->SetSize(FVector2D(540.0f, 260.0f));
+        DialogSlot->SetZOrder(20);
+    }
+}
+
 void UInventoryWidget::ShowRemoveQuantityDialog(int32 MaxQuantity)
 {
     EnsureRemoveQuantityDialog();
@@ -646,6 +775,92 @@ void UInventoryWidget::AdjustRemoveQuantity(int32 Delta)
 {
     SelectedRemoveQuantity = FMath::Clamp(SelectedRemoveQuantity + Delta, 1, MaxRemoveQuantity);
     UpdateRemoveQuantityDisplay();
+}
+
+void UInventoryWidget::ShowEnhancementDialog()
+{
+    EnsureEnhancementDialog();
+
+    if (!EnhancementDialogBorder || !EnhancementDialogBlocker)
+    {
+        return;
+    }
+
+    if (ContextMenuBorder)
+    {
+        ContextMenuBorder->SetVisibility(ESlateVisibility::Collapsed);
+    }
+
+    if (ContextMenuBlocker)
+    {
+        ContextMenuBlocker->SetVisibility(ESlateVisibility::Collapsed);
+    }
+
+    ASoulCharacter* OwnerCharacter = CachedInventoryComponent.IsValid() ? Cast<ASoulCharacter>(CachedInventoryComponent->GetOwner()) : nullptr;
+    USoulWeaponComponent* WeaponComponent = OwnerCharacter ? OwnerCharacter->FindComponentByClass<USoulWeaponComponent>() : nullptr;
+    USoulCharacterStatComponent* StatComponent = OwnerCharacter ? OwnerCharacter->FindComponentByClass<USoulCharacterStatComponent>() : nullptr;
+
+    const bool bHasSword = WeaponComponent && WeaponComponent->HasWeapon(EWeaponType::Sword);
+    const bool bHasGun = WeaponComponent && WeaponComponent->HasWeapon(EWeaponType::Gun);
+
+    const bool bCanEnhanceSword = bHasSword && StatComponent && StatComponent->GetSwordEnhancementLevel() < USoulCharacterStatComponent::MaxWeaponEnhancementLevel;
+    const bool bCanEnhanceGun = bHasGun && StatComponent && StatComponent->GetGunEnhancementLevel() < USoulCharacterStatComponent::MaxWeaponEnhancementLevel;
+
+    if (SwordEnhanceButton)
+    {
+        SwordEnhanceButton->SetIsEnabled(bCanEnhanceSword);
+        SwordEnhanceButton->OnClicked.RemoveAll(this);
+        SwordEnhanceButton->OnClicked.AddDynamic(this, &UInventoryWidget::HandleEnhanceSword);
+    }
+
+    if (GunEnhanceButton)
+    {
+        GunEnhanceButton->SetIsEnabled(bCanEnhanceGun);
+        GunEnhanceButton->OnClicked.RemoveAll(this);
+        GunEnhanceButton->OnClicked.AddDynamic(this, &UInventoryWidget::HandleEnhanceGun);
+    }
+
+    EnhancementDialogBorder->SetVisibility(ESlateVisibility::Visible);
+    EnhancementDialogBlocker->SetVisibility(ESlateVisibility::Visible);
+}
+
+void UInventoryWidget::HideEnhancementDialog()
+{
+    if (EnhancementDialogBorder)
+    {
+        EnhancementDialogBorder->SetVisibility(ESlateVisibility::Collapsed);
+    }
+
+    if (EnhancementDialogBlocker)
+    {
+        EnhancementDialogBlocker->SetVisibility(ESlateVisibility::Collapsed);
+    }
+}
+
+void UInventoryWidget::HandleEnhanceWeapon(EWeaponType WeaponType)
+{
+    ASoulCharacter* OwnerCharacter = CachedInventoryComponent.IsValid() ? Cast<ASoulCharacter>(CachedInventoryComponent->GetOwner()) : nullptr;
+
+    if (OwnerCharacter && OwnerCharacter->EnhanceWeapon(WeaponType))
+    {
+        if (CachedInventoryComponent.IsValid() && CachedSlots.IsValidIndex(CachedContextSlotIndex))
+        {
+            CachedInventoryComponent->UseItemAtIndex(CachedContextSlotIndex);
+        }
+    }
+
+    HideEnhancementDialog();
+    HideContextMenu();
+}
+
+void UInventoryWidget::HandleEnhanceSword()
+{
+    HandleEnhanceWeapon(EWeaponType::Sword);
+}
+
+void UInventoryWidget::HandleEnhanceGun()
+{
+    HandleEnhanceWeapon(EWeaponType::Gun);
 }
 
 void UInventoryWidget::HandleRemoveMinusTen()
@@ -731,6 +946,8 @@ void UInventoryWidget::HideContextMenu(bool bResetSelection /*= true*/)
         ContextMenuBlocker->SetVisibility(ESlateVisibility::Collapsed);
     }
 
+    HideEnhancementDialog();
+
     if (bResetSelection)
     {
         ResetMenuSelection();
@@ -767,6 +984,22 @@ FEventReply UInventoryWidget::HandleRemoveDialogBlockerMouseButtonDown(FGeometry
     return UWidgetBlueprintLibrary::Handled();
 }
 
+FEventReply UInventoryWidget::HandleEnhancementDialogBlockerMouseButtonDown(FGeometry MyGeometry, const FPointerEvent& MouseEvent)
+{
+    if (EnhancementDialogBorder)
+    {
+        const FGeometry& DialogGeometry = EnhancementDialogBorder->GetCachedGeometry();
+        if (DialogGeometry.IsUnderLocation(MouseEvent.GetScreenSpacePosition()))
+        {
+            return UWidgetBlueprintLibrary::Unhandled();
+        }
+    }
+
+    HideEnhancementDialog();
+    HideContextMenu();
+    return UWidgetBlueprintLibrary::Handled();
+}
+
 void UInventoryWidget::RefreshQuickSlotSelectors()
 {
     if (!QuickSlotSelectorBox)
@@ -789,8 +1022,15 @@ void UInventoryWidget::RefreshQuickSlotSelectors()
 
 void UInventoryWidget::HandleUseItem()
 {
-    if (CachedInventoryComponent.IsValid() && CachedContextSlotIndex != INDEX_NONE)
+    if (CachedInventoryComponent.IsValid() && CachedSlots.IsValidIndex(CachedContextSlotIndex))
     {
+        const FInventoryItem& Item = CachedSlots[CachedContextSlotIndex].Item;
+        if (Item.Type == EInventoryItemType::EnhancementStone)
+        {
+            ShowEnhancementDialog();
+            return;
+        }
+
         CachedInventoryComponent->UseItemAtIndex(CachedContextSlotIndex);
     }
 

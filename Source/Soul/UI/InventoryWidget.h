@@ -5,6 +5,7 @@
 #include "Components/Border.h"
 #include "Input/Reply.h"
 #include "../Character/InventoryItem.h"
+#include "../Common/WeaponTypes.h"
 #include "InventoryWidget.generated.h"
 
 class UBorder;
@@ -98,6 +99,16 @@ protected:
     void HideRemoveQuantityDialog();
     void UpdateRemoveQuantityDisplay();
     void AdjustRemoveQuantity(int32 Delta);
+    void EnsureEnhancementDialog();
+    void ShowEnhancementDialog();
+    void HideEnhancementDialog();
+    void HandleEnhanceWeapon(EWeaponType WeaponType);
+
+    UFUNCTION()
+    void HandleEnhanceSword();
+
+    UFUNCTION()
+    void HandleEnhanceGun();
 
     UFUNCTION()
     void ConfirmRemoveQuantity();
@@ -120,6 +131,10 @@ protected:
 
     UFUNCTION()
     FEventReply HandleRemoveDialogBlockerMouseButtonDown(FGeometry MyGeometry, const FPointerEvent& MouseEvent);
+
+    UFUNCTION()
+    FEventReply HandleEnhancementDialogBlockerMouseButtonDown(FGeometry MyGeometry, const FPointerEvent& MouseEvent);
+
     void ToggleQuickSlotSelector();
     void AssignQuickSlot(int32 SlotNumber);
     void ResetMenuSelection();
@@ -164,6 +179,21 @@ protected:
 
     UPROPERTY()
     UTextBlock* RemoveQuantityValueText = nullptr;
+
+    UPROPERTY()
+    UBorder* EnhancementDialogBlocker = nullptr;
+
+    UPROPERTY()
+    UBorder* EnhancementDialogBorder = nullptr;
+
+    UPROPERTY()
+    UHorizontalBox* EnhancementChoiceBox = nullptr;
+
+    UPROPERTY()
+    UButton* SwordEnhanceButton = nullptr;
+
+    UPROPERTY()
+    UButton* GunEnhanceButton = nullptr;
 
     UPROPERTY(EditAnywhere, Category = "Inventory", meta = (ClampMin = 1))
     int32 DefaultColumns = 4;

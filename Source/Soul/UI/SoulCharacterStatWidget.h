@@ -95,16 +95,16 @@ protected:
     UPROPERTY(meta = (BindWidget))
     UTextBlock* Txt_GunDamage;
 
-    UPROPERTY(meta = (BindWidgetOptional))
+    UPROPERTY(meta = (BindWidget))
     UTextBlock* Txt_StrEffect;
 
-    UPROPERTY(meta = (BindWidgetOptional))
+    UPROPERTY(meta = (BindWidget))
     UTextBlock* Txt_DexEffect;
 
-    UPROPERTY(meta = (BindWidgetOptional))
+    UPROPERTY(meta = (BindWidget))
     UTextBlock* Txt_VitEffect;
 
-    UPROPERTY(meta = (BindWidgetOptional))
+    UPROPERTY(meta = (BindWidget))
     UTextBlock* Txt_EndEffect;
 
     UPROPERTY(meta = (BindWidget))
@@ -119,15 +119,15 @@ protected:
     UPROPERTY(meta = (BindWidget))
     UButton* Btn_EndPlus;
 
-    UPROPERTY(meta = (BindWidgetOptional))
+    UPROPERTY(meta = (BindWidget))
     UButton* Btn_StrMinus;
 
-    UPROPERTY(meta = (BindWidgetOptional))
+    UPROPERTY(meta = (BindWidget))
     UButton* Btn_DexMinus;
 
-    UPROPERTY(meta = (BindWidgetOptional))
+    UPROPERTY(meta = (BindWidget))
     UButton* Btn_VitMinus;
 
-    UPROPERTY(meta = (BindWidgetOptional))
+    UPROPERTY(meta = (BindWidget))
     UButton* Btn_EndMinus;
 };

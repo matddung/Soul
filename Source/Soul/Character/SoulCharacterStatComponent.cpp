@@ -161,6 +161,39 @@ void USoulCharacterStatComponent::ResetCurrentToMax()
 	Stamina = MaxStamina;
 }
 
+bool USoulCharacterStatComponent::EnhanceWeapon(EWeaponType Type)
+{
+	float* TargetDamageBase = nullptr;
+	int32* TargetEnhancementLevel = nullptr;
+
+	switch (Type)
+	{
+	case EWeaponType::Sword:
+		TargetDamageBase = &SwordDamageBase;
+		TargetEnhancementLevel = &SwordEnhancementLevel;
+		break;
+	case EWeaponType::Gun:
+		TargetDamageBase = &GunDamageBase;
+		TargetEnhancementLevel = &GunEnhancementLevel;
+		break;
+	default:
+		return false;
+	}
+
+	if (!TargetDamageBase || !TargetEnhancementLevel || *TargetEnhancementLevel >= MaxWeaponEnhancementLevel)
+	{
+		return false;
+	}
+
+	*TargetDamageBase *= (1.0f + WeaponEnhancementRate);
+	*TargetEnhancementLevel += 1;
+
+	RecalculateDerivedStats(false);
+	SaveStatData();
+
+	return true;
+}
+
 int32 USoulCharacterStatComponent::GetStatRef(ECharacterStatType StatType) const
 {
 	switch (StatType)
@@ -237,6 +270,10 @@ void USoulCharacterStatComponent::SaveStatData() const
 	SaveData->END = END;
 	SaveData->Souls = Souls;
 	SaveData->InvestCount = InvestCount;
+	SaveData->SavedSwordDamageBase = SwordDamageBase;
+	SaveData->SavedGunDamageBase = GunDamageBase;
+	SaveData->SwordEnhancementLevel = SwordEnhancementLevel;
+	SaveData->GunEnhancementLevel = GunEnhancementLevel;
 
 	UGameplayStatics::SaveGameToSlot(SaveData, UCharacterStatSaveData::GetSlotName(), 0);
 }
@@ -255,6 +292,10 @@ void USoulCharacterStatComponent::LoadStatData()
 			END = FMath::Clamp(LoadedData->END, MinStatValue, MaxStatValue);
 			Souls = FMath::Max(0, LoadedData->Souls);
 			InvestCount = FMath::Max(0, LoadedData->InvestCount);
+			SwordDamageBase = LoadedData->SavedSwordDamageBase;
+			GunDamageBase = LoadedData->SavedGunDamageBase;
+			SwordEnhancementLevel = FMath::Clamp(LoadedData->SwordEnhancementLevel, 0, MaxWeaponEnhancementLevel);
+			GunEnhancementLevel = FMath::Clamp(LoadedData->GunEnhancementLevel, 0, MaxWeaponEnhancementLevel);
 		}
 	}
 

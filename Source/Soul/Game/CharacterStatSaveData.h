@@ -28,5 +28,17 @@ public:
     UPROPERTY(BlueprintReadWrite)
     int32 InvestCount = 0;
 
+    UPROPERTY(BlueprintReadWrite)
+    float SavedSwordDamageBase = 20;
+
+    UPROPERTY(BlueprintReadWrite)
+    float SavedGunDamageBase = 15;
+
+    UPROPERTY(BlueprintReadWrite)
+    int32 SwordEnhancementLevel = 0;
+
+    UPROPERTY(BlueprintReadWrite)
+    int32 GunEnhancementLevel = 0;
+
     FORCEINLINE static FString GetSlotName() { return TEXT("CharacterStatSaveData"); }
 };

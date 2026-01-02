@@ -3,6 +3,7 @@
 #include "CoreMinimal.h"
 #include "Components/ActorComponent.h"
 #include "../Game/CharacterStatSaveData.h"
+#include "../Common/WeaponTypes.h"
 #include "SoulCharacterStatComponent.generated.h"
 
 DECLARE_DYNAMIC_MULTICAST_DELEGATE(FOnDead);
@@ -72,6 +73,14 @@ public:
 
 	UFUNCTION()
 	void ResetCurrentToMax();
+
+	bool EnhanceWeapon(EWeaponType Type);
+
+	UFUNCTION(BlueprintPure)
+	FORCEINLINE int32 GetSwordEnhancementLevel() const { return SwordEnhancementLevel; }
+
+	UFUNCTION(BlueprintPure)
+	FORCEINLINE int32 GetGunEnhancementLevel() const { return GunEnhancementLevel; }
 
 	UFUNCTION(BlueprintPure)
 	FORCEINLINE float GetSwordDamage() const { return SwordDamage; }
@@ -194,6 +203,18 @@ public:
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Stats")
 	float GunDamagePerDEX = 1.5f;
 
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Stats")
+	float WeaponEnhancementBonus = 5.0f;
+
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Stats")
+	float WeaponEnhancementRate = 0.1f;
+
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Stats")
+	int32 SwordEnhancementLevel = 0;
+
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Stats")
+	int32 GunEnhancementLevel = 0;
+
 	UPROPERTY(BlueprintAssignable)
 	FOnDead OnDead;
 
@@ -202,6 +223,7 @@ public:
 
 	static constexpr int32 MinStatValue = 1;
 	static constexpr int32 MaxStatValue = 99;
+	static constexpr int32 MaxWeaponEnhancementLevel = 10;
 
 protected:
 	static constexpr int32 FixedInitialInvestCost = 100;

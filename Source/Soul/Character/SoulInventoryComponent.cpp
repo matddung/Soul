@@ -1,29 +1,42 @@
 #include "SoulInventoryComponent.h"
+#include "../Game/InventorySaveData.h"
+
+#include "Kismet/GameplayStatics.h"
 
 USoulInventoryComponent::USoulInventoryComponent()
 {
     PrimaryComponentTick.bCanEverTick = false;
-    SetSlotCount(InitialSlotCount);
+    SetSlotCount(InitialSlotCount, false);
 }
 
 void USoulInventoryComponent::BeginPlay()
 {
     Super::BeginPlay();
 
-    SetSlotCount(InitialSlotCount);
+    const bool bLoaded = LoadInventory();
 
-    if (InitialPotionCharges > 0)
+    bHasInitializedInventory = true;
+
+    if (!bLoaded)
     {
-        GainItem(EInventoryItemType::Potion, InitialPotionCharges);
+        SetSlotCount(InitialSlotCount, false);
+
+        if (InitialPotionCharges > 0)
+        {
+            GainItem(EInventoryItemType::Potion, InitialPotionCharges);
+        }
+
+        if (InitialEnhancementStones > 0)
+        {
+            GainItem(EInventoryItemType::EnhancementStone, InitialEnhancementStones);
+        }
     }
 
-    if (InitialEnhancementStones > 0)
-    {
-        GainItem(EInventoryItemType::EnhancementStone, InitialEnhancementStones);
-    }
+    OnInventoryChanged.Broadcast();
+    SaveInventory();
 }
 
-void USoulInventoryComponent::SetSlotCount(int32 NewSlotCount)
+void USoulInventoryComponent::SetSlotCount(int32 NewSlotCount, bool bBroadcastChange)
 {
     if (NewSlotCount < 1)
     {
@@ -33,9 +46,10 @@ void USoulInventoryComponent::SetSlotCount(int32 NewSlotCount)
     const int32 PreviousCount = Slots.Num();
     Slots.SetNum(NewSlotCount);
 
-    if (PreviousCount != NewSlotCount)
+    if (PreviousCount != NewSlotCount && bBroadcastChange)
     {
         OnInventoryChanged.Broadcast();
+        SaveInventory();
     }
 }
 
@@ -173,6 +187,7 @@ bool USoulInventoryComponent::GainItem(EInventoryItemType Type, int32 Quantity)
     if (bChanged)
     {
         OnInventoryChanged.Broadcast();
+        SaveInventory();
     }
 
     return RemainingQuantity == 0;
@@ -199,5 +214,60 @@ bool USoulInventoryComponent::UseItemAtIndex(int32 SlotIndex, int32 Quantity)
     }
 
     OnInventoryChanged.Broadcast();
+    SaveInventory();
+    return true;
+}
+
+void USoulInventoryComponent::SaveInventory() const
+{
+    if (!bHasInitializedInventory)
+    {
+        return;
+    }
+
+    UInventorySaveData* SaveData = Cast<UInventorySaveData>(UGameplayStatics::CreateSaveGameObject(UInventorySaveData::StaticClass()));
+
+    if (!SaveData)
+    {
+        return;
+    }
+
+    SaveData->SlotCount = Slots.Num();
+    SaveData->Slots = Slots;
+
+    UGameplayStatics::SaveGameToSlot(SaveData, UInventorySaveData::GetSlotName(), 0);
+}
+
+bool USoulInventoryComponent::LoadInventory()
+{
+    const FString SlotName = UInventorySaveData::GetSlotName();
+
+    if (!UGameplayStatics::DoesSaveGameExist(SlotName, 0))
+    {
+        return false;
+    }
+
+    const UInventorySaveData* SaveData = Cast<UInventorySaveData>(UGameplayStatics::LoadGameFromSlot(SlotName, 0));
+
+    if (!SaveData)
+    {
+        return false;
+    }
+
+    const int32 SavedSlotCount = FMath::Max(1, SaveData->SlotCount > 0 ? SaveData->SlotCount : SaveData->Slots.Num());
+    SetSlotCount(SavedSlotCount, false);
+
+    const int32 CopyCount = FMath::Min(Slots.Num(), SaveData->Slots.Num());
+
+    for (int32 Index = 0; Index < CopyCount; ++Index)
+    {
+        Slots[Index] = SaveData->Slots[Index];
+    }
+
+    for (int32 Index = CopyCount; Index < Slots.Num(); ++Index)
+    {
+        Slots[Index].Clear();
+    }
+
     return true;
 }

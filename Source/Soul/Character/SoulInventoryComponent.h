@@ -18,12 +18,13 @@ public:
     const TArray<FInventorySlot>& GetSlots() const { return Slots; }
     int32 GetSlotCount() const { return Slots.Num(); }
 
-    void SetSlotCount(int32 NewSlotCount);
+    void SetSlotCount(int32 NewSlotCount, bool bBroadcastChange = true);
 
     bool GainItem(EInventoryItemType Type, int32 Quantity);
     bool UseItemAtIndex(int32 SlotIndex, int32 Quantity = 1);
 
-    FOnInventoryChanged OnInventoryChanged;
+    void SaveInventory() const;
+    bool LoadInventory();
 
 protected:
     virtual void BeginPlay() override;
@@ -34,6 +35,9 @@ protected:
 
     bool TryMergeStack(FInventorySlot& Slot, const FInventoryItemDefinition& Definition, int32& RemainingQuantity);
     bool TryCreateNewStack(const FInventoryItemDefinition& Definition, int32& RemainingQuantity);
+
+public:
+    FOnInventoryChanged OnInventoryChanged;
 
 protected:
     UPROPERTY(EditAnywhere, Category = "Inventory", meta = (ClampMin = 1))
@@ -46,9 +50,11 @@ protected:
     int32 InitialPotionCharges = 2;
 
     UPROPERTY(EditAnywhere, Category = "Inventory", meta = (ClampMin = 0))
-    int32 InitialEnhancementStones = 19;
+    int32 InitialEnhancementStones = 150;
 
 private:
     UPROPERTY()
     TArray<FInventorySlot> Slots;
+
+    bool bHasInitializedInventory = false;
 };

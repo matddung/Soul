@@ -58,6 +58,7 @@ public:
 	void EndLadder();
 
 	void GiveGunFromBox(bool bAutoEquip = false);
+	bool EnhanceWeapon(EWeaponType Type);
 
 protected:
 	virtual void BeginPlay() override;
