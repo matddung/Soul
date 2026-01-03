@@ -547,6 +547,11 @@ void ASoulPlayerController::HandleMoveCompleted(const FInputActionValue& Value)
     }
 }
 
+void ASoulPlayerController::RequestClosePauseMenu()
+{
+    ClosePauseMenu();
+}
+
 void ASoulPlayerController::TogglePauseMenu()
 {
     if (bPauseMenuOpen)
@@ -555,6 +560,8 @@ void ASoulPlayerController::TogglePauseMenu()
     }
     else
     {
+        CloseInventory();
+        CloseStatusWidget();
         OpenPauseMenu();
     }
 }
@@ -566,6 +573,9 @@ void ASoulPlayerController::HandleToggleStatus(const FInputActionValue& Value)
 
 void ASoulPlayerController::OpenPauseMenu()
 {
+    CloseInventory();
+    CloseStatusWidget();
+
     if (!PauseMenuClass)
     {
         UE_LOG(LogTemp, Warning, TEXT("PauseMenuClass is not set on PlayerController."));
@@ -695,6 +705,8 @@ void ASoulPlayerController::ToggleStatusWidget()
     }
     else
     {
+        ClosePauseMenu();
+        CloseInventory();
         OpenStatusWidget();
     }
 }
@@ -826,23 +838,24 @@ void ASoulPlayerController::HandleToggleInventory(const FInputActionValue& Value
 
 void ASoulPlayerController::ToggleInventory()
 {
-    if (bPauseMenuOpen)
-    {
-        return;
-    }
-
     if (bInventoryOpen)
     {
         CloseInventory();
     }
     else
     {
+        ClosePauseMenu();
+        CloseStatusWidget();
         OpenInventory();
     }
 }
 
 void ASoulPlayerController::OpenInventory()
 {
+    ClosePauseMenu();
+    CloseStatusWidget();
+
+
     if (!InventoryWidget && InventoryWidgetClass)
     {
         InventoryWidget = CreateWidget<UInventoryWidget>(this, InventoryWidgetClass);

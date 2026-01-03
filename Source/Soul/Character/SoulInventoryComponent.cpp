@@ -255,6 +255,7 @@ bool USoulInventoryComponent::LoadInventory()
     }
 
     const int32 SavedSlotCount = FMath::Max(1, SaveData->SlotCount > 0 ? SaveData->SlotCount : SaveData->Slots.Num());
+    UE_LOG(LogTemp, Warning, TEXT("SavedSlotCount = %d"), SavedSlotCount);
     SetSlotCount(SavedSlotCount, false);
 
     const int32 CopyCount = FMath::Min(Slots.Num(), SaveData->Slots.Num());

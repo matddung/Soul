@@ -21,6 +21,7 @@
 #include "Components/HorizontalBoxSlot.h"
 #include "Components/Spacer.h"
 #include "Components/SizeBox.h"
+#include "Layout/Clipping.h"
 
 void UInventorySlotBorder::InitializeSlot(UInventoryWidget* InOwner, int32 InSlotIndex)
 {
@@ -186,6 +187,9 @@ void UInventoryWidget::AddSlotWidget(int32 SlotIndex, int32 Row, int32 Column)
     {
         SlotText->SetText(BuildSlotLabel(SlotIndex));
         SlotText->SetJustification(ETextJustify::Center);
+        SlotText->SetAutoWrapText(true);
+        SlotText->SetWrapTextAt(200.f);
+        SlotText->SetClipping(EWidgetClipping::ClipToBounds);
         SlotBorder->SetContent(SlotText);
     }
 

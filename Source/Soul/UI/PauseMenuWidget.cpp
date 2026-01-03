@@ -131,13 +131,9 @@ EPausePage UPauseMenuWidget::GetCurrentPage() const
 
 void UPauseMenuWidget::OnResumeClicked()
 {
-	if (APlayerController* PC = GetOwningPlayer())
+	if (ASoulPlayerController* SoulPC = Cast<ASoulPlayerController>(GetOwningPlayer()))
 	{
-		RemoveFromParent();
-		PC->SetPause(false);
-		PC->bShowMouseCursor = false;
-		FInputModeGameOnly Mode;
-		PC->SetInputMode(Mode);
+		SoulPC->RequestClosePauseMenu();
 	}
 }
 

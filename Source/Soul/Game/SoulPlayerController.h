@@ -59,6 +59,8 @@ public:
     void ApplySavedKeyMappings();
     TMap<FName, FKey> GetCurrentKeyMappings() const;
 
+    void RequestClosePauseMenu();
+
 protected:
     virtual void BeginPlay() override;
     virtual void SetupInputComponent() override;

@@ -92,7 +92,6 @@ protected:
     void ShowContextMenu(int32 SlotIndex, const FVector2D& ScreenSpacePosition);
     void HideContextMenu(bool bResetSelection = true);
     void RefreshQuickSlotSelectors();
-    FEventReply HandleMenuBlockerMouseButtonDown(FGeometry MyGeometry, const FPointerEvent& MouseEvent);
     void HandleUseItem();
     void HandleRemoveItem();
     void ShowRemoveQuantityDialog(int32 MaxQuantity);
@@ -103,6 +102,9 @@ protected:
     void ShowEnhancementDialog();
     void HideEnhancementDialog();
     void HandleEnhanceWeapon(EWeaponType WeaponType);
+
+    UFUNCTION()
+    FEventReply HandleMenuBlockerMouseButtonDown(FGeometry MyGeometry, const FPointerEvent& MouseEvent);
 
     UFUNCTION()
     void HandleEnhanceSword();
