@@ -5,6 +5,8 @@
 #include "../UI/FloatingDamageActor.h"
 #include "../Interact/SoulInteractableInterface.h"
 #include "../Interact/SoulLadderActor.h"
+#include "../Game/CharacterStatSaveData.h"
+#include "../Interact/SoulBoxActor.h"
 #include "SoulWeaponComponent.h"
 
 #include "Camera/CameraComponent.h"
@@ -75,6 +77,8 @@ void ASoulCharacter::BeginPlay()
 	{
 		StatComp->RecalculateDerivedStats();
 	}
+
+	RestoreWeaponOwnershipFromSave();
 
 	CurrentWeaponType = EWeaponType::Empty;
 }
@@ -1274,11 +1278,13 @@ void ASoulCharacter::GiveGunFromBox(bool bAutoEquip)
 		return;
 	}
 
-	if(!WeaponComp->HasWeapon(EWeaponType::Gun))
+	if (!WeaponComp->HasWeapon(EWeaponType::Gun))
 	{
 		WeaponComp->GiveWeapon(DefaultGunData);
 		UE_LOG(LogTemp, Log, TEXT("Gun acquired! (not equipped)"));
 	}
+
+	SaveWeaponOwnership(true);
 
 	if (bAutoEquip)
 	{
@@ -1306,4 +1312,75 @@ bool ASoulCharacter::EnhanceWeapon(EWeaponType Type)
 	}
 
 	return false;
+}
+
+void ASoulCharacter::RestoreWeaponOwnershipFromSave()
+{
+	const FString SlotName = UCharacterStatSaveData::GetSlotName();
+
+	if (!UGameplayStatics::DoesSaveGameExist(SlotName, 0))
+	{
+		return;
+	}
+
+	if (const UCharacterStatSaveData* LoadedData = Cast<UCharacterStatSaveData>(UGameplayStatics::LoadGameFromSlot(SlotName, 0)))
+	{
+		if (LoadedData->bHasGunFromBox)
+		{
+			if (WeaponComp && !WeaponComp->HasWeapon(EWeaponType::Gun) && DefaultGunData)
+			{
+				GiveGunFromBox(false);
+			}
+
+			TArray<AActor*> FoundBoxes;
+			UGameplayStatics::GetAllActorsOfClass(GetWorld(), ASoulBoxActor::StaticClass(), FoundBoxes);
+
+			for (AActor* BoxActor : FoundBoxes)
+			{
+				if (BoxActor)
+				{
+					BoxActor->Destroy();
+				}
+			}
+		}
+	}
+}
+
+void ASoulCharacter::SaveWeaponOwnership(bool bHasGunOwned)
+{
+	const FString SlotName = UCharacterStatSaveData::GetSlotName();
+	UCharacterStatSaveData* SaveData = nullptr;
+
+	if (UGameplayStatics::DoesSaveGameExist(SlotName, 0))
+	{
+		SaveData = Cast<UCharacterStatSaveData>(UGameplayStatics::LoadGameFromSlot(SlotName, 0));
+	}
+
+	if (!SaveData)
+	{
+		SaveData = Cast<UCharacterStatSaveData>(UGameplayStatics::CreateSaveGameObject(UCharacterStatSaveData::StaticClass()));
+
+		if (!SaveData)
+		{
+			return;
+		}
+	}
+
+	if (StatComp)
+	{
+		SaveData->STR = StatComp->STR;
+		SaveData->DEX = StatComp->DEX;
+		SaveData->VIT = StatComp->VIT;
+		SaveData->END = StatComp->END;
+		SaveData->Souls = StatComp->Souls;
+		SaveData->InvestCount = StatComp->InvestCount;
+		SaveData->SavedSwordDamageBase = StatComp->SwordDamageBase;
+		SaveData->SavedGunDamageBase = StatComp->GunDamageBase;
+		SaveData->SwordEnhancementLevel = StatComp->SwordEnhancementLevel;
+		SaveData->GunEnhancementLevel = StatComp->GunEnhancementLevel;
+	}
+
+	SaveData->bHasGunFromBox = bHasGunOwned;
+
+	UGameplayStatics::SaveGameToSlot(SaveData, SlotName, 0);
 }

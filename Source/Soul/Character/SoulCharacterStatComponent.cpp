@@ -257,11 +257,22 @@ FCharacterDerivedStats USoulCharacterStatComponent::GetDerivedStatsInternal(int3
 
 void USoulCharacterStatComponent::SaveStatData() const
 {
-	UCharacterStatSaveData* SaveData = Cast<UCharacterStatSaveData>(UGameplayStatics::CreateSaveGameObject(UCharacterStatSaveData::StaticClass()));
+	const FString SlotName = UCharacterStatSaveData::GetSlotName();
+	UCharacterStatSaveData* SaveData = nullptr;
+
+	if (UGameplayStatics::DoesSaveGameExist(SlotName, 0))
+	{
+		SaveData = Cast<UCharacterStatSaveData>(UGameplayStatics::LoadGameFromSlot(SlotName, 0));
+	}
 
 	if (!SaveData)
 	{
-		return;
+		SaveData = Cast<UCharacterStatSaveData>(UGameplayStatics::CreateSaveGameObject(UCharacterStatSaveData::StaticClass()));
+
+		if (!SaveData)
+		{
+			return;
+		}
 	}
 
 	SaveData->STR = STR;
@@ -275,7 +286,7 @@ void USoulCharacterStatComponent::SaveStatData() const
 	SaveData->SwordEnhancementLevel = SwordEnhancementLevel;
 	SaveData->GunEnhancementLevel = GunEnhancementLevel;
 
-	UGameplayStatics::SaveGameToSlot(SaveData, UCharacterStatSaveData::GetSlotName(), 0);
+	UGameplayStatics::SaveGameToSlot(SaveData, SlotName, 0);
 }
 
 void USoulCharacterStatComponent::LoadStatData()

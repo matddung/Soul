@@ -40,5 +40,8 @@ public:
     UPROPERTY(BlueprintReadWrite)
     int32 GunEnhancementLevel = 0;
 
+    UPROPERTY(BlueprintReadWrite)
+    bool bHasGunFromBox = false;
+
     FORCEINLINE static FString GetSlotName() { return TEXT("CharacterStatSaveData"); }
 };

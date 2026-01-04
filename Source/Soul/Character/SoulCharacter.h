@@ -120,6 +120,9 @@ protected:
 
 	void UpdateTopMountMove(float DeltaSeconds);
 
+	void RestoreWeaponOwnershipFromSave();
+	void SaveWeaponOwnership(bool bHasGunOwned);
+
 public:
 	FOnAutoFaceEndDelegate OnAutoFaceEnd;
 
