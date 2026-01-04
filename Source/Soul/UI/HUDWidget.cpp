@@ -137,7 +137,7 @@ FText UHUDWidget::BuildQuickSlotLabel(int32 QuickSlotOffset) const
     }
 
     const int32 ActiveIndex = CachedInventoryComponent->GetActiveQuickSlotIndex();
-    const int32 SlotArrayIndex = (ActiveIndex + QuickSlotOffset + 1) % QuickSlotCount;
+    const int32 SlotArrayIndex = (ActiveIndex + QuickSlotOffset) % QuickSlotCount;
     const int32 InventoryIndex = QuickSlots.IsValidIndex(SlotArrayIndex) ? QuickSlots[SlotArrayIndex] : INDEX_NONE;
     const TArray<FInventorySlot>& Slots = CachedInventoryComponent->GetSlots();
 

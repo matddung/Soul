@@ -336,6 +336,11 @@ bool USoulInventoryComponent::AssignQuickSlot(int32 InventorySlotIndex, int32 Qu
         return false;
     }
 
+    if (!CanAssignToQuickSlot(InventorySlotIndex))
+    {
+        return false;
+    }
+
     QuickSlotAssignments[QuickSlotNumber - 1] = InventorySlotIndex;
     ValidateQuickSlots();
     OnQuickSlotChanged.Broadcast();
@@ -360,11 +365,67 @@ void USoulInventoryComponent::ValidateQuickSlots()
         if (QuickSlotIndex < 0 || QuickSlotIndex >= SlotCount)
         {
             QuickSlotIndex = INDEX_NONE;
+            continue;
+        }
+
+        const FInventoryItem& Item = Slots[QuickSlotIndex].Item;
+        if (!IsQuickSlotEligibleItem(Item))
+        {
+            QuickSlotIndex = INDEX_NONE;
         }
     }
 
     if (QuickSlotAssignments.Num() > 0)
     {
         ActiveQuickSlotIndex = FMath::Clamp(ActiveQuickSlotIndex, 0, QuickSlotAssignments.Num() - 1);
+    }
+}
+
+int32 USoulInventoryComponent::GetActiveQuickSlotInventoryIndex() const
+{
+    if (!QuickSlotAssignments.IsValidIndex(ActiveQuickSlotIndex))
+    {
+        return INDEX_NONE;
+    }
+
+    const int32 SlotIndex = QuickSlotAssignments[ActiveQuickSlotIndex];
+    return Slots.IsValidIndex(SlotIndex) ? SlotIndex : INDEX_NONE;
+}
+
+bool USoulInventoryComponent::CanAssignToQuickSlot(int32 InventorySlotIndex) const
+{
+    if (!Slots.IsValidIndex(InventorySlotIndex))
+    {
+        return false;
+    }
+
+    const FInventoryItem& Item = Slots[InventorySlotIndex].Item;
+    return IsQuickSlotEligibleItem(Item);
+}
+
+bool USoulInventoryComponent::UseActiveQuickSlotItem(int32 Quantity)
+{
+    if (Quantity <= 0 || !QuickSlotAssignments.IsValidIndex(ActiveQuickSlotIndex))
+    {
+        return false;
+    }
+
+    const int32 SlotIndex = QuickSlotAssignments[ActiveQuickSlotIndex];
+    if (!Slots.IsValidIndex(SlotIndex))
+    {
+        return false;
+    }
+
+    return UseItemAtIndex(SlotIndex, Quantity);
+}
+
+bool USoulInventoryComponent::IsQuickSlotEligibleItem(const FInventoryItem& Item) const
+{
+    switch (Item.Type)
+    {
+    case EInventoryItemType::Potion:
+        return true;
+    default:
+        return false;
     }
 }

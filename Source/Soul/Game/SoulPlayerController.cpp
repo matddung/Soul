@@ -180,7 +180,7 @@ void ASoulPlayerController::ShowInteractPrompt(bool bShow, const FText& Text)
 TArray<FPlayerActionKeyMapping> ASoulPlayerController::GetRebindableActions() const
 {
     TArray<FPlayerActionKeyMapping> Actions;
-    Actions.Reserve(10);
+    Actions.Reserve(13);
 
     Actions.Add({ SprintAction, FText::FromString(TEXT("Sprint")) });
     Actions.Add({ AttackAction, FText::FromString(TEXT("Attack")) });
@@ -192,6 +192,9 @@ TArray<FPlayerActionKeyMapping> ASoulPlayerController::GetRebindableActions() co
     Actions.Add({ PauseMenuAction, FText::FromString(TEXT("Pause")) });
     Actions.Add({ StatusAction, FText::FromString(TEXT("Status")) });
     Actions.Add({ InventoryAction, FText::FromString(TEXT("Inventory")) });
+    Actions.Add({ QuickSlotScrollUpAction, FText::FromString(TEXT("QuickSlotScrollUp")) });
+    Actions.Add({ QuickSlotScrollDownAction, FText::FromString(TEXT("QuickSlotScrollDown")) });
+    Actions.Add({ QuickSlotUseAction, FText::FromString(TEXT("Use Quick Slot")) });
 
     Actions.RemoveAll([](const FPlayerActionKeyMapping& Mapping)
         {
@@ -454,6 +457,8 @@ void ASoulPlayerController::BindInputActions()
 
         EnhancedInputComponent->BindAction(QuickSlotScrollUpAction, ETriggerEvent::Triggered, this, &ASoulPlayerController::HandleQuickSlotScrollUp);
         EnhancedInputComponent->BindAction(QuickSlotScrollDownAction, ETriggerEvent::Triggered, this, &ASoulPlayerController::HandleQuickSlotScrollDown);
+
+        EnhancedInputComponent->BindAction(QuickSlotUseAction, ETriggerEvent::Started, this, &ASoulPlayerController::HandleUseQuickSlotItem);
     }
 }
 
@@ -992,5 +997,40 @@ void ASoulPlayerController::HandleQuickSlotScrollDown(const FInputActionValue& V
     if (CachedInventoryComponent.IsValid())
     {
         CachedInventoryComponent->CycleQuickSlots(-1);
+    }
+}
+
+void ASoulPlayerController::HandleUseQuickSlotItem(const FInputActionValue& Value)
+{
+    if (!CachedInventoryComponent.IsValid())
+    {
+        return;
+    }
+
+    const int32 SlotIndex = CachedInventoryComponent->GetActiveQuickSlotInventoryIndex();
+    const TArray<FInventorySlot>& Slots = CachedInventoryComponent->GetSlots();
+
+    if (!Slots.IsValidIndex(SlotIndex) || Slots[SlotIndex].IsEmpty())
+    {
+        return;
+    }
+
+    const FInventoryItem& Item = Slots[SlotIndex].Item;
+
+    if (Item.Type == EInventoryItemType::EnhancementStone)
+    {
+        if (!bInventoryOpen)
+        {
+            OpenInventory();
+        }
+
+        if (InventoryWidget)
+        {
+            InventoryWidget->UseItemAtSlotIndex(SlotIndex);
+        }
+    }
+    else
+    {
+        CachedInventoryComponent->UseActiveQuickSlotItem();
     }
 }

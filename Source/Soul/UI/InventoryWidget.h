@@ -75,6 +75,7 @@ public:
     void RefreshInventory(const TArray<FInventorySlot>& Slots, int32 TotalSlotCount);
     FEventReply HandleSlotMouseButtonDown(int32 SlotIndex, const FGeometry& Geometry, const FPointerEvent& MouseEvent);
     FEventReply HandleMenuEntryAction(EInventoryContextAction Action, int32 QuickSlotNumber, const FPointerEvent& MouseEvent);
+    void UseItemAtSlotIndex(int32 SlotIndex);
 
     virtual FReply NativeOnPreviewMouseButtonDown(const FGeometry& InGeometry, const FPointerEvent& InMouseEvent) override;
 
@@ -196,6 +197,9 @@ protected:
 
     UPROPERTY()
     UButton* GunEnhanceButton = nullptr;
+
+    UPROPERTY()
+    UInventoryMenuEntryBorder* QuickSlotMenuEntry = nullptr;
 
     UPROPERTY(EditAnywhere, Category = "Inventory", meta = (ClampMin = 1))
     int32 DefaultColumns = 4;

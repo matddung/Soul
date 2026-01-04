@@ -128,6 +128,8 @@ protected:
     void OnQuickSlotChanged();
     void RefreshHUD();
 
+    void HandleUseQuickSlotItem(const FInputActionValue& Value);
+
 protected:
     UPROPERTY(EditDefaultsOnly, Category = "UI")
     TSubclassOf<UCrosshairWidget> CrosshairWidgetClass;
@@ -185,6 +187,9 @@ protected:
 
     UPROPERTY(EditAnywhere, Category = "Input")
     TObjectPtr<UInputAction> QuickSlotScrollDownAction;
+
+    UPROPERTY(EditAnywhere, Category = "Input")
+    TObjectPtr<UInputAction> QuickSlotUseAction;
 
     UPROPERTY(EditAnywhere, Category = "Input")
     TObjectPtr<UInputMappingContext> DefaultMappingContext;

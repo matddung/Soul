@@ -378,9 +378,10 @@ void UInventoryWidget::EnsureContextMenu()
             ContextMenuBox->AddChildToVerticalBox(UseMenuEntry);
         }
 
-        if (UBorder* QuickSlotEntry = CreateMenuEntry(NSLOCTEXT("InventoryWidget", "ContextQuickSlot", "Quick Slot Registration"), EInventoryContextAction::QuickSlotToggle))
+        QuickSlotMenuEntry = Cast<UInventoryMenuEntryBorder>(CreateMenuEntry(NSLOCTEXT("InventoryWidget", "ContextQuickSlot", "Quick Slot Registration"), EInventoryContextAction::QuickSlotToggle));
+        if (QuickSlotMenuEntry)
         {
-            ContextMenuBox->AddChildToVerticalBox(QuickSlotEntry);
+            ContextMenuBox->AddChildToVerticalBox(QuickSlotMenuEntry);
         }
 
         QuickSlotSelectorBox = WidgetTree->ConstructWidget<UVerticalBox>(UVerticalBox::StaticClass(), TEXT("QuickSlotSelector"));
@@ -1100,6 +1101,7 @@ void UInventoryWidget::UpdateMenuEntryStates()
 {
     bool bCanUse = false;
     bool bCanRemove = false;
+    bool bCanAssignQuickSlot = false;
 
     if (CachedSlots.IsValidIndex(CachedContextSlotIndex))
     {
@@ -1110,6 +1112,7 @@ void UInventoryWidget::UpdateMenuEntryStates()
             const bool bKeepWhenEmpty = Item.Definition.EmptyPolicy == EInventoryEmptyPolicy::KeepWhenEmpty;
 
             bCanUse = bHasQuantity;
+            bCanAssignQuickSlot = CachedInventoryComponent.IsValid() && CachedInventoryComponent->CanAssignToQuickSlot(CachedContextSlotIndex);
             
             if (!bKeepWhenEmpty)
             {
@@ -1123,9 +1126,19 @@ void UInventoryWidget::UpdateMenuEntryStates()
         UseMenuEntry->SetIsEnabled(bCanUse);
     }
 
+    if (QuickSlotMenuEntry)
+    {
+        QuickSlotMenuEntry->SetIsEnabled(bCanAssignQuickSlot);
+    }
+
     if (RemoveMenuEntry)
     {
         RemoveMenuEntry->SetIsEnabled(bCanRemove);
+    }
+
+    if (QuickSlotSelectorBox && !bCanAssignQuickSlot)
+    {
+        QuickSlotSelectorBox->SetVisibility(ESlateVisibility::Collapsed);
     }
 }
 
@@ -1138,4 +1151,10 @@ void UInventoryWidget::OnInventoryChanged()
 
     HideRemoveQuantityDialog();
     HideContextMenu();
+}
+
+void UInventoryWidget::UseItemAtSlotIndex(int32 SlotIndex)
+{
+    CachedContextSlotIndex = SlotIndex;
+    HandleUseItem();
 }

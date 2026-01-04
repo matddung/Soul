@@ -33,6 +33,10 @@ public:
     void SaveInventory() const;
     bool LoadInventory();
 
+    bool UseActiveQuickSlotItem(int32 Quantity = 1);
+    int32 GetActiveQuickSlotInventoryIndex() const;
+    bool CanAssignToQuickSlot(int32 InventorySlotIndex) const;
+
 protected:
     virtual void BeginPlay() override;
 
@@ -46,6 +50,8 @@ protected:
     void HandleInventoryMutated();
     void ValidateQuickSlots();
 
+    bool IsQuickSlotEligibleItem(const FInventoryItem& Item) const;
+
 public:
     FOnInventoryChanged OnInventoryChanged;
     FOnQuickSlotChanged OnQuickSlotChanged;
@@ -58,7 +64,7 @@ protected:
     int32 EnhancementStoneMaxStack = 99;
 
     UPROPERTY(EditAnywhere, Category = "Inventory", meta = (ClampMin = 0))
-    int32 InitialPotionCharges = 2;
+    int32 InitialPotionCharges = 99;
 
     UPROPERTY(EditAnywhere, Category = "Inventory", meta = (ClampMin = 0))
     int32 InitialEnhancementStones = 150;
