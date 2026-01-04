@@ -8,6 +8,7 @@
 #include "../Character/SoulCharacterStatComponent.h"
 #include "../UI/InventoryWidget.h"
 #include "../Character/SoulInventoryComponent.h"
+#include "../UI/HUDWidget.h"
 
 #include "Blueprint/UserWidget.h"
 #include "EnhancedInputComponent.h"
@@ -45,6 +46,15 @@ void ASoulPlayerController::BeginPlay()
     }
 
     PlayBackgroundMusic();
+
+    if (HUDWidgetClass)
+    {
+        HUDWidget = CreateWidget<UHUDWidget>(this, HUDWidgetClass);
+        if (HUDWidget)
+        {
+            HUDWidget->AddToViewport();
+        }
+    }
 }
 
 void ASoulPlayerController::SetupInputComponent()
@@ -60,15 +70,9 @@ void ASoulPlayerController::OnPossess(APawn* InPawn)
 
     AddDefaultMappingContext();
     BindStatComponent();
-    if (ASoulCharacter* SoulCharacter = GetSoulCharacter())
-    {
-        CachedInventoryComponent = SoulCharacter->InventoryComp;
-    }
-    else
-    {
-        CachedInventoryComponent.Reset();
-    }
+    BindInventoryComponent();
     RefreshStatusWidget();
+    RefreshHUD();
 }
 
 void ASoulPlayerController::OnUnPossess()
@@ -86,7 +90,19 @@ void ASoulPlayerController::OnUnPossess()
 
     CachedStatComponent.Reset();
 
+    if (CachedInventoryComponent.IsValid())
+    {
+        CachedInventoryComponent->OnInventoryChanged.RemoveAll(this);
+        CachedInventoryComponent->OnQuickSlotChanged.RemoveAll(this);
+    }
+
     CachedInventoryComponent.Reset();
+
+    if (HUDWidget)
+    {
+        HUDWidget->SetStatComponent(nullptr);
+        HUDWidget->SetInventoryComponent(nullptr);
+    }
 
     if (InventoryWidget)
     {
@@ -435,6 +451,9 @@ void ASoulPlayerController::BindInputActions()
         EnhancedInputComponent->BindAction(StatusAction, ETriggerEvent::Started, this, &ASoulPlayerController::HandleToggleStatus);
 
         EnhancedInputComponent->BindAction(InventoryAction, ETriggerEvent::Started, this, &ASoulPlayerController::HandleToggleInventory);
+
+        EnhancedInputComponent->BindAction(QuickSlotScrollUpAction, ETriggerEvent::Triggered, this, &ASoulPlayerController::HandleQuickSlotScrollUp);
+        EnhancedInputComponent->BindAction(QuickSlotScrollDownAction, ETriggerEvent::Triggered, this, &ASoulPlayerController::HandleQuickSlotScrollDown);
     }
 }
 
@@ -791,7 +810,7 @@ void ASoulPlayerController::BindStatComponent()
 
     if (ASoulCharacter* SoulCharacter = GetSoulCharacter())
     {
-        CachedStatComponent = SoulCharacter->StatComponent;
+        CachedStatComponent = SoulCharacter->StatComp;
     }
     else
     {
@@ -900,5 +919,78 @@ void ASoulPlayerController::CloseInventory()
 
         FInputModeGameOnly InputMode;
         SetInputMode(InputMode);
+    }
+}
+
+void ASoulPlayerController::BindInventoryComponent()
+{
+    if (CachedInventoryComponent.IsValid())
+    {
+        CachedInventoryComponent->OnInventoryChanged.RemoveAll(this);
+        CachedInventoryComponent->OnQuickSlotChanged.RemoveAll(this);
+    }
+
+    if (ASoulCharacter* SoulCharacter = GetSoulCharacter())
+    {
+        CachedInventoryComponent = SoulCharacter->InventoryComp;
+    }
+    else
+    {
+        CachedInventoryComponent.Reset();
+    }
+
+    if (CachedInventoryComponent.IsValid())
+    {
+        CachedInventoryComponent->OnInventoryChanged.AddUObject(this, &ASoulPlayerController::OnInventoryChanged);
+        CachedInventoryComponent->OnQuickSlotChanged.AddUObject(this, &ASoulPlayerController::OnQuickSlotChanged);
+    }
+
+    if (InventoryWidget)
+    {
+        InventoryWidget->SetInventoryComponent(CachedInventoryComponent.Get());
+    }
+
+    if (HUDWidget)
+    {
+        HUDWidget->SetInventoryComponent(CachedInventoryComponent.Get());
+    }
+}
+
+void ASoulPlayerController::RefreshHUD()
+{
+    if (!HUDWidget)
+    {
+        return;
+    }
+
+    HUDWidget->SetStatComponent(CachedStatComponent.Get());
+    HUDWidget->SetInventoryComponent(CachedInventoryComponent.Get());
+    HUDWidget->RefreshStats();
+    HUDWidget->RefreshQuickSlots();
+}
+
+void ASoulPlayerController::OnInventoryChanged()
+{
+    RefreshHUD();
+}
+
+void ASoulPlayerController::OnQuickSlotChanged()
+{
+    RefreshHUD();
+}
+
+void ASoulPlayerController::HandleQuickSlotScrollUp(const FInputActionValue& Value)
+{
+    if (CachedInventoryComponent.IsValid())
+    {
+        CachedInventoryComponent->CycleQuickSlots(1);
+    }
+}
+
+void ASoulPlayerController::HandleQuickSlotScrollDown(const FInputActionValue& Value)
+{
+    if (CachedInventoryComponent.IsValid())
+    {
+        CachedInventoryComponent->CycleQuickSlots(-1);
     }
 }

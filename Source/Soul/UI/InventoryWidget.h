@@ -204,7 +204,7 @@ protected:
     int32 DefaultSlotCount = 16;
 
     UPROPERTY(EditAnywhere, Category = "Inventory", meta = (ClampMin = 1))
-    int32 QuickSlotCount = 2;
+    int32 QuickSlotCount = 3;
 
     TWeakObjectPtr<USoulInventoryComponent> CachedInventoryComponent;
     TArray<FInventorySlot> CachedSlots;

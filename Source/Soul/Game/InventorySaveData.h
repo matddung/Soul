@@ -17,5 +17,11 @@ public:
     UPROPERTY(BlueprintReadWrite)
     int32 SlotCount = 0;
 
+    UPROPERTY(BlueprintReadWrite)
+    TArray<int32> QuickSlotAssignments;
+
+    UPROPERTY(BlueprintReadWrite)
+    int32 ActiveQuickSlotIndex = 0;
+
     FORCEINLINE static FString GetSlotName() { return TEXT("InventorySaveData"); }
 };

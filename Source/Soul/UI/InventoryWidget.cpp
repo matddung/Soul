@@ -98,6 +98,7 @@ void UInventoryWidget::SetInventoryComponent(USoulInventoryComponent* InventoryC
     if (CachedInventoryComponent.IsValid())
     {
         CachedInventoryComponent->OnInventoryChanged.RemoveAll(this);
+        CachedInventoryComponent->OnQuickSlotChanged.RemoveAll(this);
     }
 
     CachedInventoryComponent = InventoryComponent;
@@ -105,6 +106,8 @@ void UInventoryWidget::SetInventoryComponent(USoulInventoryComponent* InventoryC
     if (CachedInventoryComponent.IsValid())
     {
         CachedInventoryComponent->OnInventoryChanged.AddUObject(this, &UInventoryWidget::OnInventoryChanged);
+        CachedInventoryComponent->OnQuickSlotChanged.AddUObject(this, &UInventoryWidget::RefreshQuickSlotSelectors);
+        QuickSlotCount = CachedInventoryComponent->GetQuickSlotCount();
         RefreshInventory(CachedInventoryComponent->GetSlots(), CachedInventoryComponent->GetSlotCount());
     }
     else
@@ -1011,6 +1014,11 @@ void UInventoryWidget::RefreshQuickSlotSelectors()
         return;
     }
 
+    if (CachedInventoryComponent.IsValid())
+    {
+        QuickSlotCount = CachedInventoryComponent->GetQuickSlotCount();
+    }
+
     QuickSlotSelectorBox->ClearChildren();
 
     for (int32 SlotNumber = 1; SlotNumber <= QuickSlotCount; ++SlotNumber)
@@ -1076,7 +1084,10 @@ void UInventoryWidget::ToggleQuickSlotSelector()
 
 void UInventoryWidget::AssignQuickSlot(int32 SlotNumber)
 {
-    UE_LOG(LogTemp, Log, TEXT("Assigning inventory slot %d to quick slot %d (stub)"), CachedContextSlotIndex, SlotNumber);
+    if (CachedInventoryComponent.IsValid())
+    {
+        CachedInventoryComponent->AssignQuickSlot(CachedContextSlotIndex, SlotNumber);
+    }
     HideContextMenu();
 }
 

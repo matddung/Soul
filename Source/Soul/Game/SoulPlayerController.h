@@ -22,6 +22,7 @@ class USoulCharacterStatWidget;
 class USoulCharacterStatComponent;
 class UInventoryWidget;
 class USoulInventoryComponent;
+class UHUDWidget;
 
 USTRUCT()
 struct FPlayerActionKeyMapping
@@ -119,6 +120,14 @@ protected:
     void OpenInventory();
     void CloseInventory();
 
+    void HandleQuickSlotScrollUp(const FInputActionValue& Value);
+    void HandleQuickSlotScrollDown(const FInputActionValue& Value);
+
+    void BindInventoryComponent();
+    void OnInventoryChanged();
+    void OnQuickSlotChanged();
+    void RefreshHUD();
+
 protected:
     UPROPERTY(EditDefaultsOnly, Category = "UI")
     TSubclassOf<UCrosshairWidget> CrosshairWidgetClass;
@@ -172,6 +181,12 @@ protected:
     TObjectPtr<UInputAction> InventoryAction;
 
     UPROPERTY(EditAnywhere, Category = "Input")
+    TObjectPtr<UInputAction> QuickSlotScrollUpAction;
+
+    UPROPERTY(EditAnywhere, Category = "Input")
+    TObjectPtr<UInputAction> QuickSlotScrollDownAction;
+
+    UPROPERTY(EditAnywhere, Category = "Input")
     TObjectPtr<UInputMappingContext> DefaultMappingContext;
 
     UPROPERTY(EditDefaultsOnly, Category = "UI")
@@ -218,6 +233,12 @@ protected:
 
     UPROPERTY()
     TWeakObjectPtr<USoulInventoryComponent> CachedInventoryComponent;
+
+    UPROPERTY(EditDefaultsOnly, Category = "UI")
+    TSubclassOf<UHUDWidget> HUDWidgetClass;
+
+    UPROPERTY(Transient)
+    TObjectPtr<UHUDWidget> HUDWidget;
 
 private:
     bool bMappingContextAdded = false;

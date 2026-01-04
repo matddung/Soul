@@ -223,7 +223,7 @@ protected:
 	bool bDodgeInvincible = false;
 
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Components")
-	TObjectPtr<USoulCharacterStatComponent> StatComponent;
+	TObjectPtr<USoulCharacterStatComponent> StatComp;
 
 	UPROPERTY(VisibleInstanceOnly, BlueprintReadOnly, Category = "Movement", meta = (AllowPrivateAccess = "true"))
 	bool bIsDead = false;

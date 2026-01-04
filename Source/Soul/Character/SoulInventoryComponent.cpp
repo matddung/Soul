@@ -7,6 +7,7 @@ USoulInventoryComponent::USoulInventoryComponent()
 {
     PrimaryComponentTick.bCanEverTick = false;
     SetSlotCount(InitialSlotCount, false);
+    SetQuickSlotCount(InitialQuickSlotCount);
 }
 
 void USoulInventoryComponent::BeginPlay()
@@ -33,6 +34,7 @@ void USoulInventoryComponent::BeginPlay()
     }
 
     OnInventoryChanged.Broadcast();
+    OnQuickSlotChanged.Broadcast();
     SaveInventory();
 }
 
@@ -48,8 +50,33 @@ void USoulInventoryComponent::SetSlotCount(int32 NewSlotCount, bool bBroadcastCh
 
     if (PreviousCount != NewSlotCount && bBroadcastChange)
     {
-        OnInventoryChanged.Broadcast();
-        SaveInventory();
+        HandleInventoryMutated();
+    }
+}
+
+void USoulInventoryComponent::SetQuickSlotCount(int32 NewQuickSlotCount)
+{
+    if (NewQuickSlotCount < 1)
+    {
+        return;
+    }
+
+    const int32 PreviousCount = QuickSlotAssignments.Num();
+    QuickSlotAssignments.SetNum(NewQuickSlotCount);
+
+    for (int32 Index = PreviousCount; Index < NewQuickSlotCount; ++Index)
+    {
+        QuickSlotAssignments[Index] = INDEX_NONE;
+    }
+
+    if (QuickSlotAssignments.Num() > 0)
+    {
+        ActiveQuickSlotIndex = FMath::Clamp(ActiveQuickSlotIndex, 0, QuickSlotAssignments.Num() - 1);
+    }
+
+    if (PreviousCount != NewQuickSlotCount)
+    {
+        OnQuickSlotChanged.Broadcast();
     }
 }
 
@@ -186,8 +213,7 @@ bool USoulInventoryComponent::GainItem(EInventoryItemType Type, int32 Quantity)
 
     if (bChanged)
     {
-        OnInventoryChanged.Broadcast();
-        SaveInventory();
+        HandleInventoryMutated();
     }
 
     return RemainingQuantity == 0;
@@ -213,8 +239,7 @@ bool USoulInventoryComponent::UseItemAtIndex(int32 SlotIndex, int32 Quantity)
         Slot.Clear();
     }
 
-    OnInventoryChanged.Broadcast();
-    SaveInventory();
+    HandleInventoryMutated();
     return true;
 }
 
@@ -234,6 +259,8 @@ void USoulInventoryComponent::SaveInventory() const
 
     SaveData->SlotCount = Slots.Num();
     SaveData->Slots = Slots;
+    SaveData->QuickSlotAssignments = QuickSlotAssignments;
+    SaveData->ActiveQuickSlotIndex = ActiveQuickSlotIndex;
 
     UGameplayStatics::SaveGameToSlot(SaveData, UInventorySaveData::GetSlotName(), 0);
 }
@@ -270,5 +297,74 @@ bool USoulInventoryComponent::LoadInventory()
         Slots[Index].Clear();
     }
 
+    if (SaveData->QuickSlotAssignments.Num() > 0)
+    {
+        QuickSlotAssignments = SaveData->QuickSlotAssignments;
+        ActiveQuickSlotIndex = SaveData->ActiveQuickSlotIndex;
+    }
+    else
+    {
+        SetQuickSlotCount(InitialQuickSlotCount);
+    }
+
+    ValidateQuickSlots();
+
     return true;
+}
+
+void USoulInventoryComponent::CycleQuickSlots(int32 Delta)
+{
+    const int32 QuickSlotCount = QuickSlotAssignments.Num();
+    if (QuickSlotCount <= 0)
+    {
+        return;
+    }
+
+    ActiveQuickSlotIndex = (ActiveQuickSlotIndex + Delta) % QuickSlotCount;
+    if (ActiveQuickSlotIndex < 0)
+    {
+        ActiveQuickSlotIndex += QuickSlotCount;
+    }
+
+    OnQuickSlotChanged.Broadcast();
+}
+
+bool USoulInventoryComponent::AssignQuickSlot(int32 InventorySlotIndex, int32 QuickSlotNumber)
+{
+    if (!Slots.IsValidIndex(InventorySlotIndex) || QuickSlotNumber < 1 || QuickSlotNumber > QuickSlotAssignments.Num())
+    {
+        return false;
+    }
+
+    QuickSlotAssignments[QuickSlotNumber - 1] = InventorySlotIndex;
+    ValidateQuickSlots();
+    OnQuickSlotChanged.Broadcast();
+    SaveInventory();
+    return true;
+}
+
+void USoulInventoryComponent::HandleInventoryMutated()
+{
+    ValidateQuickSlots();
+    OnInventoryChanged.Broadcast();
+    OnQuickSlotChanged.Broadcast();
+    SaveInventory();
+}
+
+void USoulInventoryComponent::ValidateQuickSlots()
+{
+    const int32 SlotCount = Slots.Num();
+
+    for (int32& QuickSlotIndex : QuickSlotAssignments)
+    {
+        if (QuickSlotIndex < 0 || QuickSlotIndex >= SlotCount)
+        {
+            QuickSlotIndex = INDEX_NONE;
+        }
+    }
+
+    if (QuickSlotAssignments.Num() > 0)
+    {
+        ActiveQuickSlotIndex = FMath::Clamp(ActiveQuickSlotIndex, 0, QuickSlotAssignments.Num() - 1);
+    }
 }

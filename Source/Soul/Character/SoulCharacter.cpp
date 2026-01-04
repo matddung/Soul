@@ -44,7 +44,7 @@ ASoulCharacter::ASoulCharacter()
 
 	UpdateMovementSpeed();
 
-	StatComponent = CreateDefaultSubobject<USoulCharacterStatComponent>(TEXT("StatComponent"));
+	StatComp = CreateDefaultSubobject<USoulCharacterStatComponent>(TEXT("StatComponent"));
 
 	WeaponComp = CreateDefaultSubobject<USoulWeaponComponent>(TEXT("WeaponComp"));
 
@@ -71,9 +71,9 @@ void ASoulCharacter::BeginPlay()
 		WeaponComp->GiveWeapon(DefaultSwordData);
 	}
 
-	if (StatComponent)
+	if (StatComp)
 	{
-		StatComponent->RecalculateDerivedStats();
+		StatComp->RecalculateDerivedStats();
 	}
 
 	CurrentWeaponType = EWeaponType::Empty;
@@ -111,9 +111,9 @@ void ASoulCharacter::PostInitializeComponents()
 	AnimInstance->OnDodgeIFrameOff.AddUObject(this, &ASoulCharacter::EndDodgeInvincible);
 	AnimInstance->OnDodgeEnd.AddUObject(this, &ASoulCharacter::OnDodgeFinished);
 	
-	if (StatComponent)
+	if (StatComp)
 	{
-		StatComponent->OnDead.AddDynamic(this, &ASoulCharacter::HandleDead);
+		StatComp->OnDead.AddDynamic(this, &ASoulCharacter::HandleDead);
 	}
 
 	AnimInstance->OnLadderTopMountEnd.AddLambda([this]()
@@ -199,16 +199,16 @@ float ASoulCharacter::TakeDamage(float DamageAmount, FDamageEvent const& DamageE
 
 	float AppliedDamage = 0;
 
-	if (StatComponent)
+	if (StatComp)
 	{
-		if (FinalDamage > 0 && StatComponent->ApplyDamage(FinalDamage))
+		if (FinalDamage > 0 && StatComp->ApplyDamage(FinalDamage))
 		{
 			OnHitDamage();
 			SpawnDamageText(this, FinalDamage);
 			AppliedDamage = FinalDamage;
 		}
 
-		UE_LOG(LogTemp, Log, TEXT("TakeDamage | Damage: %.2f | HP: %.2f / %.2f"), FinalDamage, StatComponent->HP, StatComponent->MaxHP);
+		UE_LOG(LogTemp, Log, TEXT("TakeDamage | Damage: %.2f | HP: %.2f / %.2f"), FinalDamage, StatComp->HP, StatComp->MaxHP);
 	}
 
 	return AppliedDamage;
@@ -218,9 +218,9 @@ void ASoulCharacter::Reset()
 {
 	Super::Reset();
 
-	if (StatComponent)
+	if (StatComp)
 	{
-		StatComponent->ResetCurrentToMax();
+		StatComp->ResetCurrentToMax();
 	}
 }
 
@@ -615,7 +615,7 @@ void ASoulCharacter::DoGunShot()
 		{
 			if (HitActor->IsA<ACharacter>())
 			{
-				const float Damage = StatComponent ? StatComponent->GetGunDamage() : 0;
+				const float Damage = StatComp ? StatComp->GetGunDamage() : 0;
 
 				UGameplayStatics::ApplyPointDamage(HitActor, Damage, Direction, HitResult, GetController(), this, nullptr);
 
@@ -710,7 +710,7 @@ void ASoulCharacter::AttackCheck()
 		AActor* HitActor = HitResult.GetActor();
 		if (HitActor)
 		{
-			const float Damage = StatComponent ? StatComponent->GetSwordDamage() : 0;
+			const float Damage = StatComp ? StatComp->GetSwordDamage() : 0;
 
 			UGameplayStatics::ApplyPointDamage(HitActor, Damage, GetActorForwardVector(), HitResult, GetController(), this, nullptr);
 			UE_LOG(LogTemp, Warning, TEXT("Hit Actor Name : %s"), *HitActor->GetName());
@@ -1294,12 +1294,12 @@ void ASoulCharacter::GiveGunFromBox(bool bAutoEquip)
 
 bool ASoulCharacter::EnhanceWeapon(EWeaponType Type)
 {
-	if (!StatComponent)
+	if (!StatComp)
 	{
 		return false;
 	}
 
-	if (StatComponent->EnhanceWeapon(Type))
+	if (StatComp->EnhanceWeapon(Type))
 	{
 		UE_LOG(LogTemp, Log, TEXT("Enhanced weapon %d"), static_cast<int32>(Type));
 		return true;

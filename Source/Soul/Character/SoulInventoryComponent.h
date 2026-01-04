@@ -6,6 +6,7 @@
 #include "SoulInventoryComponent.generated.h"
 
 DECLARE_MULTICAST_DELEGATE(FOnInventoryChanged);
+DECLARE_MULTICAST_DELEGATE(FOnQuickSlotChanged);
 
 UCLASS(ClassGroup = (Custom), meta = (BlueprintSpawnableComponent))
 class SOUL_API USoulInventoryComponent : public UActorComponent
@@ -15,10 +16,16 @@ class SOUL_API USoulInventoryComponent : public UActorComponent
 public:
     USoulInventoryComponent();
 
-    const TArray<FInventorySlot>& GetSlots() const { return Slots; }
-    int32 GetSlotCount() const { return Slots.Num(); }
+    FORCEINLINE const TArray<FInventorySlot>& GetSlots() const { return Slots; }
+    FORCEINLINE int32 GetSlotCount() const { return Slots.Num(); }
+    FORCEINLINE int32 GetQuickSlotCount() const { return QuickSlotAssignments.Num(); }
+    FORCEINLINE const TArray<int32>& GetQuickSlotAssignments() const { return QuickSlotAssignments; }
+    FORCEINLINE int32 GetActiveQuickSlotIndex() const { return ActiveQuickSlotIndex; }
 
     void SetSlotCount(int32 NewSlotCount, bool bBroadcastChange = true);
+    void SetQuickSlotCount(int32 NewQuickSlotCount);
+    void CycleQuickSlots(int32 Delta);
+    bool AssignQuickSlot(int32 InventorySlotIndex, int32 QuickSlotNumber);
 
     bool GainItem(EInventoryItemType Type, int32 Quantity);
     bool UseItemAtIndex(int32 SlotIndex, int32 Quantity = 1);
@@ -36,8 +43,12 @@ protected:
     bool TryMergeStack(FInventorySlot& Slot, const FInventoryItemDefinition& Definition, int32& RemainingQuantity);
     bool TryCreateNewStack(const FInventoryItemDefinition& Definition, int32& RemainingQuantity);
 
+    void HandleInventoryMutated();
+    void ValidateQuickSlots();
+
 public:
     FOnInventoryChanged OnInventoryChanged;
+    FOnQuickSlotChanged OnQuickSlotChanged;
 
 protected:
     UPROPERTY(EditAnywhere, Category = "Inventory", meta = (ClampMin = 1))
@@ -55,6 +66,14 @@ protected:
 private:
     UPROPERTY()
     TArray<FInventorySlot> Slots;
+
+    UPROPERTY(EditAnywhere, Category = "Inventory", meta = (ClampMin = 1))
+    int32 InitialQuickSlotCount = 3;
+
+    UPROPERTY()
+    TArray<int32> QuickSlotAssignments;
+
+    int32 ActiveQuickSlotIndex = 0;
 
     bool bHasInitializedInventory = false;
 };
