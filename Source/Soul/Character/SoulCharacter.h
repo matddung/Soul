@@ -66,6 +66,8 @@ protected:
 	virtual void Tick(float DeltaSeconds) override;
 	virtual float TakeDamage(float DamageAmount, FDamageEvent const& DamageEvent, AController* EventInstigator, AActor* DamageCauser) override;
 	virtual void Reset() override;
+	virtual void OnMovementModeChanged(EMovementMode PrevMovementMode, uint8 PreviousCustomMode) override;
+	virtual void Landed(const FHitResult& Hit) override;
 
 	void Move(const FInputActionValue& Value);
 	void Look(const FInputActionValue& Value);
@@ -122,6 +124,9 @@ protected:
 
 	void RestoreWeaponOwnershipFromSave();
 	void SaveWeaponOwnership(bool bHasGunOwned);
+
+	void HandleFallStart();
+	void HandleLandingDamage();
 
 public:
 	FOnAutoFaceEndDelegate OnAutoFaceEnd;
@@ -292,7 +297,7 @@ protected:
 	FRotator TopMountStartRot;
 
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Weapon", meta = (AllowPrivateAccess = "true"))
-	TObjectPtr<USoulWeaponComponent> WeaponComp;
+	TObjectPtr<USoulWeaponComponent> WeaponComponent;
 
 	UPROPERTY(EditDefaultsOnly, Category = "Weapon")
 	TObjectPtr<USoulWeaponData> DefaultSwordData;
@@ -302,4 +307,7 @@ protected:
 
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Components", meta = (AllowPrivateAccess = "true"))
 	TObjectPtr<USoulInventoryComponent> InventoryComp;
+
+	UPROPERTY(VisibleInstanceOnly, Category = "Movement")
+	float FallStartZ = 0;
 };

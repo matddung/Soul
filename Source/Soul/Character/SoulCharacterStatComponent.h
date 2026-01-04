@@ -111,6 +111,9 @@ public:
 
 	FORCEINLINE static FString GetSaveSlotName() { return UCharacterStatSaveData::GetSlotName(); }
 
+	UFUNCTION()
+	bool RestoreHP(float Amount);
+
 protected:
 	virtual void BeginPlay() override;
 

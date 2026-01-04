@@ -44,6 +44,7 @@ bool USoulWeaponComponent::EquipWeapon(EWeaponType Type)
     if (Type == EWeaponType::Empty)
     {
         EquippedType = EWeaponType::Empty;
+        EquippedWeaponData = nullptr;
         ClearVisual();
         return true;
     }
@@ -55,6 +56,7 @@ bool USoulWeaponComponent::EquipWeapon(EWeaponType Type)
     }
 
     EquippedType = Type;
+    EquippedWeaponData = *Found;
     ApplyVisual(*Found);
     return true;
 }

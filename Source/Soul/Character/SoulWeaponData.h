@@ -22,4 +22,13 @@ public:
 
     UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Weapon|Attach")
     FTransform AttachOffset = FTransform::Identity;
+
+    UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Weapon|FX")
+    TObjectPtr<UParticleSystem> MuzzleFlash = nullptr;
+
+    UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Weapon|FX")
+    FName MuzzleSocketName = TEXT("Muzzle");
+
+    UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Weapon|FX")
+    FVector MuzzleFlashScale = FVector::OneVector;
 };

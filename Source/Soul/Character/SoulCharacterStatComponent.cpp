@@ -312,3 +312,21 @@ void USoulCharacterStatComponent::LoadStatData()
 
 	RecalculateDerivedStats(true);
 }
+
+bool USoulCharacterStatComponent::RestoreHP(float Amount)
+{
+	if (Amount <= 0 || IsDead())
+	{
+		return false;
+	}
+
+	const float OldHP = HP;
+	HP = FMath::Clamp(HP + Amount, 0, MaxHP);
+
+	if (!FMath::IsNearlyEqual(OldHP, HP))
+	{
+		OnStatChanged.Broadcast();
+	}
+
+	return !FMath::IsNearlyEqual(OldHP, HP);
+}

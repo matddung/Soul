@@ -52,6 +52,9 @@ protected:
 
     bool IsQuickSlotEligibleItem(const FInventoryItem& Item) const;
 
+    bool ApplyItemEffect(const FInventoryItem& Item);
+    bool ApplyPotionEffect();
+
 public:
     FOnInventoryChanged OnInventoryChanged;
     FOnQuickSlotChanged OnQuickSlotChanged;
@@ -68,6 +71,9 @@ protected:
 
     UPROPERTY(EditAnywhere, Category = "Inventory", meta = (ClampMin = 0))
     int32 InitialEnhancementStones = 150;
+
+    UPROPERTY(EditAnywhere, Category = "Inventory", meta = (ClampMin = 0))
+    float PotionHealAmount = 100;
 
 private:
     UPROPERTY()

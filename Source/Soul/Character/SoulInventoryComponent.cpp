@@ -1,5 +1,6 @@
 #include "SoulInventoryComponent.h"
 #include "../Game/InventorySaveData.h"
+#include "SoulCharacterStatComponent.h"
 
 #include "Kismet/GameplayStatics.h"
 
@@ -232,6 +233,8 @@ bool USoulInventoryComponent::UseItemAtIndex(int32 SlotIndex, int32 Quantity)
         return false;
     }
 
+    ApplyItemEffect(Slot.Item);
+
     Slot.Item.Quantity = FMath::Max(0, Slot.Item.Quantity - Quantity);
 
     if (Slot.Item.Quantity <= 0 && Slot.Item.Definition.EmptyPolicy == EInventoryEmptyPolicy::RemoveWhenEmpty)
@@ -428,4 +431,28 @@ bool USoulInventoryComponent::IsQuickSlotEligibleItem(const FInventoryItem& Item
     default:
         return false;
     }
+}
+
+bool USoulInventoryComponent::ApplyItemEffect(const FInventoryItem& Item)
+{
+    switch (Item.Type)
+    {
+    case EInventoryItemType::Potion:
+        return ApplyPotionEffect();
+    default:
+        return false;
+    }
+}
+
+bool USoulInventoryComponent::ApplyPotionEffect()
+{
+    if (AActor* OwnerActor = GetOwner())
+    {
+        if (USoulCharacterStatComponent* StatComponent = OwnerActor->FindComponentByClass<USoulCharacterStatComponent>())
+        {
+            return StatComponent->RestoreHP(PotionHealAmount);
+        }
+    }
+
+    return false;
 }

@@ -8,6 +8,7 @@
 #include "../Game/CharacterStatSaveData.h"
 #include "../Interact/SoulBoxActor.h"
 #include "SoulWeaponComponent.h"
+#include "SoulWeaponData.h"
 
 #include "Camera/CameraComponent.h"
 #include "Components/CapsuleComponent.h"
@@ -48,7 +49,7 @@ ASoulCharacter::ASoulCharacter()
 
 	StatComp = CreateDefaultSubobject<USoulCharacterStatComponent>(TEXT("StatComponent"));
 
-	WeaponComp = CreateDefaultSubobject<USoulWeaponComponent>(TEXT("WeaponComp"));
+	WeaponComponent = CreateDefaultSubobject<USoulWeaponComponent>(TEXT("WeaponComp"));
 
 	InventoryComp = CreateDefaultSubobject<USoulInventoryComponent>(TEXT("InventoryComponent"));
 }
@@ -68,9 +69,9 @@ void ASoulCharacter::BeginPlay()
 		DefaultSocketOffset = CameraBoom->SocketOffset;
 	}
 
-	if (WeaponComp && DefaultSwordData)
+	if (WeaponComponent && DefaultSwordData)
 	{
-		WeaponComp->GiveWeapon(DefaultSwordData);
+		WeaponComponent->GiveWeapon(DefaultSwordData);
 	}
 
 	if (StatComp)
@@ -228,6 +229,23 @@ void ASoulCharacter::Reset()
 	}
 }
 
+void ASoulCharacter::OnMovementModeChanged(EMovementMode PrevMovementMode, uint8 PreviousCustomMode)
+{
+	Super::OnMovementModeChanged(PrevMovementMode, PreviousCustomMode);
+
+	if (GetCharacterMovement() && GetCharacterMovement()->MovementMode == MOVE_Falling)
+	{
+		HandleFallStart();
+	}
+}
+
+void ASoulCharacter::Landed(const FHitResult& Hit)
+{
+	Super::Landed(Hit);
+
+	HandleLandingDamage();
+}
+
 void ASoulCharacter::Move(const FInputActionValue& Value)
 {
 	if (GetController() == nullptr)
@@ -370,7 +388,7 @@ void ASoulCharacter::SwapSword(const FInputActionValue& Value)
 
 	StopAiming();
 
-	if (WeaponComp && WeaponComp->EquipWeapon(EWeaponType::Sword))
+	if (WeaponComponent && WeaponComponent->EquipWeapon(EWeaponType::Sword))
 	{
 		CurrentWeaponType = EWeaponType::Sword;
 		bIsAiming = false;
@@ -395,7 +413,7 @@ void ASoulCharacter::SwapGun(const FInputActionValue& Value)
 		return;
 	}
 
-	if (WeaponComp && WeaponComp->EquipWeapon(EWeaponType::Gun))
+	if (WeaponComponent && WeaponComponent->EquipWeapon(EWeaponType::Gun))
 	{
 		CurrentWeaponType = EWeaponType::Gun;
 		bIsAiming = false;
@@ -422,9 +440,9 @@ void ASoulCharacter::SwapEmpty(const FInputActionValue& Value)
 
 	StopAiming();
 
-	if (WeaponComp)
+	if (WeaponComponent)
 	{
-		WeaponComp->EquipWeapon(EWeaponType::Empty);
+		WeaponComponent->EquipWeapon(EWeaponType::Empty);
 	}
 
 	CurrentWeaponType = EWeaponType::Empty;
@@ -595,6 +613,24 @@ void ASoulCharacter::DoGunShot()
 	if (!FollowCamera)
 	{
 		return;
+	}
+
+	if (WeaponComponent)
+	{
+		const TObjectPtr<USoulWeaponData> WeaponData = WeaponComponent->GetEquippedWeaponData();
+		if (WeaponData && WeaponData->MuzzleFlash)
+		{
+			if (const TObjectPtr<UStaticMeshComponent> WeaponMesh = WeaponComponent->GetEquippedMeshComponent())
+			{
+				if (WeaponMesh->DoesSocketExist(WeaponData->MuzzleSocketName))
+				{
+					FTransform SocketTransform = WeaponMesh->GetSocketTransform(WeaponData->MuzzleSocketName);
+					SocketTransform.SetScale3D(WeaponData->MuzzleFlashScale);
+
+					UGameplayStatics::SpawnEmitterAtLocation(GetWorld(), WeaponData->MuzzleFlash, SocketTransform);
+				}
+			}
+		}
 	}
 
 	const FVector Start = FollowCamera->GetComponentLocation();
@@ -1020,9 +1056,9 @@ void ASoulCharacter::SetWeaponType(EWeaponType NewType)
 
 	CurrentWeaponType = NewType;
 
-	if (WeaponComp)
+	if (WeaponComponent)
 	{
-		WeaponComp->EquipWeapon(NewType);
+		WeaponComponent->EquipWeapon(NewType);
 	}
 
 	if (NewType != EWeaponType::Gun)
@@ -1272,15 +1308,15 @@ void ASoulCharacter::UpdateTopMountMove(float DeltaSeconds)
 
 void ASoulCharacter::GiveGunFromBox(bool bAutoEquip)
 {
-	if (!WeaponComp || !DefaultGunData)
+	if (!WeaponComponent || !DefaultGunData)
 	{
-		UE_LOG(LogTemp, Warning, TEXT("GiveGunFromBox failed: WeaponComp or DefaultGunData is null"));
+		UE_LOG(LogTemp, Warning, TEXT("GiveGunFromBox failed: WeaponComponent or DefaultGunData is null"));
 		return;
 	}
 
-	if (!WeaponComp->HasWeapon(EWeaponType::Gun))
+	if (!WeaponComponent->HasWeapon(EWeaponType::Gun))
 	{
-		WeaponComp->GiveWeapon(DefaultGunData);
+		WeaponComponent->GiveWeapon(DefaultGunData);
 		UE_LOG(LogTemp, Log, TEXT("Gun acquired! (not equipped)"));
 	}
 
@@ -1291,7 +1327,7 @@ void ASoulCharacter::GiveGunFromBox(bool bAutoEquip)
 		StopAiming();
 		bIsSprinting = false;
 
-		WeaponComp->EquipWeapon(EWeaponType::Gun);
+		WeaponComponent->EquipWeapon(EWeaponType::Gun);
 		CurrentWeaponType = EWeaponType::Gun;
 
 		UpdateMovementSpeed();
@@ -1327,7 +1363,7 @@ void ASoulCharacter::RestoreWeaponOwnershipFromSave()
 	{
 		if (LoadedData->bHasGunFromBox)
 		{
-			if (WeaponComp && !WeaponComp->HasWeapon(EWeaponType::Gun) && DefaultGunData)
+			if (WeaponComponent && !WeaponComponent->HasWeapon(EWeaponType::Gun) && DefaultGunData)
 			{
 				GiveGunFromBox(false);
 			}
@@ -1383,4 +1419,57 @@ void ASoulCharacter::SaveWeaponOwnership(bool bHasGunOwned)
 	SaveData->bHasGunFromBox = bHasGunOwned;
 
 	UGameplayStatics::SaveGameToSlot(SaveData, SlotName, 0);
+}
+
+void ASoulCharacter::HandleFallStart()
+{
+	FallStartZ = GetActorLocation().Z;
+}
+
+void ASoulCharacter::HandleLandingDamage()
+{
+	if (!StatComp)
+	{
+		return;
+	}
+
+	const float FallDistance = FallStartZ - GetActorLocation().Z;
+
+	if (FallDistance <= 0)
+	{
+		return;
+	}
+
+	float DamagePercent = 0;
+
+	if (FallDistance >= 500)
+	{
+		DamagePercent = 1.0f;
+	}
+	else if (FallDistance >= 400)
+	{
+		DamagePercent = 0.5f;
+	}
+	else if (FallDistance >= 300)
+	{
+		DamagePercent = 0.2f;
+	}
+
+	if (DamagePercent <= 0)
+	{
+		return;
+	}
+
+	const float DamageAmount = StatComp->GetMaxHP() * DamagePercent;
+
+	if (DamageAmount <= 0)
+	{
+		return;
+	}
+
+	if (StatComp->ApplyDamage(DamageAmount))
+	{
+		OnHitDamage();
+		SpawnDamageText(this, DamageAmount);
+	}
 }
