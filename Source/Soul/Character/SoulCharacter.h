@@ -43,6 +43,8 @@ public:
 	FORCEINLINE bool GetIsHit() const { return bIsHit; }
 	FORCEINLINE bool IsOnLadder() const { return LocomotionState == ELocomotionState::Ladder; }
 	FORCEINLINE float GetLadderInput() const { return LadderInput; }
+	FORCEINLINE int32 GetMaxGunShots() const { return MaxGunShots; }
+	FORCEINLINE int32 GetRemainingGunShots() const { return RemainingGunShots; }
 
 	void SetInteractTarget(AActor* NewTarget);
 	void ClearInteractTarget(AActor* Target);
@@ -127,6 +129,9 @@ protected:
 
 	void HandleFallStart();
 	void HandleLandingDamage();
+
+	void ResetGunShots();
+	void NotifyGunAmmoChanged();
 
 public:
 	FOnAutoFaceEndDelegate OnAutoFaceEnd;
@@ -310,4 +315,10 @@ protected:
 
 	UPROPERTY(VisibleInstanceOnly, Category = "Movement")
 	float FallStartZ = 0;
+
+	UPROPERTY(EditAnywhere, Category = "Weapon|Gun")
+	int32 MaxGunShots = 30;
+
+	UPROPERTY(VisibleInstanceOnly, Category = "Weapon|Gun")
+	int32 RemainingGunShots = 0;
 };

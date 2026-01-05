@@ -23,6 +23,7 @@ public:
 
     void RefreshStats();
     void RefreshQuickSlots();
+    void SetGunAmmo(int32 CurrentAmmo, int32 MaxAmmo, bool bShowAmmo);
 
 protected:
     virtual void NativeOnInitialized() override;
@@ -51,6 +52,9 @@ protected:
 
     UPROPERTY(meta = (BindWidgetOptional))
     UTextBlock* Txt_QuickSlotB;
+
+    UPROPERTY(meta = (BindWidgetOptional))
+    UTextBlock* Txt_GunAmmo;
 
 private:
     UPROPERTY()

@@ -69,7 +69,7 @@ protected:
 	FRotator DoorTargetRot;
 
 	UPROPERTY(EditAnywhere, Category = "Door")
-	FName TargetLevelName = FName("TestMap");
+	FName TargetLevelName = FName("BossMap");
 
 	UPROPERTY()
 	TWeakObjectPtr<ASoulCharacter> CachedInteractor;

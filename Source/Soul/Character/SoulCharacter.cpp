@@ -52,6 +52,8 @@ ASoulCharacter::ASoulCharacter()
 	WeaponComponent = CreateDefaultSubobject<USoulWeaponComponent>(TEXT("WeaponComp"));
 
 	InventoryComp = CreateDefaultSubobject<USoulInventoryComponent>(TEXT("InventoryComponent"));
+
+	RemainingGunShots = MaxGunShots;
 }
 
 void ASoulCharacter::BeginPlay()
@@ -78,6 +80,8 @@ void ASoulCharacter::BeginPlay()
 	{
 		StatComp->RecalculateDerivedStats();
 	}
+
+	ResetGunShots();
 
 	RestoreWeaponOwnershipFromSave();
 
@@ -227,6 +231,25 @@ void ASoulCharacter::Reset()
 	{
 		StatComp->ResetCurrentToMax();
 	}
+
+	ResetGunShots();
+}
+
+void ASoulCharacter::ResetGunShots()
+{
+	RemainingGunShots = MaxGunShots;
+	NotifyGunAmmoChanged();
+}
+
+void ASoulCharacter::NotifyGunAmmoChanged()
+{
+	if (APlayerController* PC = Cast<APlayerController>(GetController()))
+	{
+		if (auto SoulPC = Cast<ASoulPlayerController>(PC))
+		{
+			SoulPC->OnGunAmmoChanged(RemainingGunShots, MaxGunShots);
+		}
+	}
 }
 
 void ASoulCharacter::OnMovementModeChanged(EMovementMode PrevMovementMode, uint8 PreviousCustomMode)
@@ -258,6 +281,16 @@ void ASoulCharacter::Move(const FInputActionValue& Value)
 	if (LocomotionState == ELocomotionState::Ladder)
 	{
 		LadderInput = MovementVector.Y;
+		return;
+	}
+
+	if (CurrentWeaponType == EWeaponType::Sword && bIsAttacking)
+	{
+		if (UCharacterMovementComponent* MoveComp = GetCharacterMovement())
+		{
+			MoveComp->StopMovementImmediately();
+		}
+
 		return;
 	}
 
@@ -393,6 +426,7 @@ void ASoulCharacter::SwapSword(const FInputActionValue& Value)
 		CurrentWeaponType = EWeaponType::Sword;
 		bIsAiming = false;
 		UpdateMovementSpeed();
+		NotifyGunAmmoChanged();
 	}
 }
 
@@ -418,6 +452,7 @@ void ASoulCharacter::SwapGun(const FInputActionValue& Value)
 		CurrentWeaponType = EWeaponType::Gun;
 		bIsAiming = false;
 		UpdateMovementSpeed();
+		NotifyGunAmmoChanged();
 	}
 }
 
@@ -447,6 +482,7 @@ void ASoulCharacter::SwapEmpty(const FInputActionValue& Value)
 
 	CurrentWeaponType = EWeaponType::Empty;
 	UpdateMovementSpeed();
+	NotifyGunAmmoChanged();
 }
 
 void ASoulCharacter::GunAimStart(const FInputActionValue& Value)
@@ -598,6 +634,11 @@ void ASoulCharacter::HandleGunAttack()
 		return;
 	}
 
+	if (RemainingGunShots <= 0)
+	{
+		return;
+	}
+
 	if (!IsGrounded())
 	{
 		return;
@@ -613,6 +654,12 @@ void ASoulCharacter::DoGunShot()
 	if (!FollowCamera)
 	{
 		return;
+	}
+
+	if (RemainingGunShots > 0)
+	{
+		--RemainingGunShots;
+		NotifyGunAmmoChanged();
 	}
 
 	if (WeaponComponent)
@@ -1319,6 +1366,8 @@ void ASoulCharacter::GiveGunFromBox(bool bAutoEquip)
 		WeaponComponent->GiveWeapon(DefaultGunData);
 		UE_LOG(LogTemp, Log, TEXT("Gun acquired! (not equipped)"));
 	}
+
+	ResetGunShots();
 
 	SaveWeaponOwnership(true);
 

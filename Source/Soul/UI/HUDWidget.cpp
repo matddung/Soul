@@ -157,3 +157,24 @@ FText UHUDWidget::BuildQuickSlotLabel(int32 QuickSlotOffset) const
 
     return ItemName;
 }
+
+void UHUDWidget::SetGunAmmo(int32 CurrentAmmo, int32 MaxAmmo, bool bShowAmmo)
+{
+    if (!Txt_GunAmmo)
+    {
+        return;
+    }
+
+    if (!bShowAmmo || MaxAmmo <= 0)
+    {
+        Txt_GunAmmo->SetText(FText::GetEmpty());
+        Txt_GunAmmo->SetVisibility(ESlateVisibility::Hidden);
+        return;
+    }
+
+    Txt_GunAmmo->SetVisibility(ESlateVisibility::Visible);
+
+    const FText CurrentText = FText::AsNumber(FMath::Max(0, CurrentAmmo));
+    const FText MaxText = FText::AsNumber(MaxAmmo);
+    Txt_GunAmmo->SetText(FText::Format(NSLOCTEXT("SoulHUD", "GunAmmo", "{0} / {1}"), CurrentText, MaxText));
+}

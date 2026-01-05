@@ -102,6 +102,7 @@ void ASoulPlayerController::OnUnPossess()
     {
         HUDWidget->SetStatComponent(nullptr);
         HUDWidget->SetInventoryComponent(nullptr);
+        HUDWidget->SetGunAmmo(0, 0, false);
     }
 
     if (InventoryWidget)
@@ -141,6 +142,21 @@ void ASoulPlayerController::OnCrosshairReset()
     {
         CrosshairWidget->OnReset();
     }
+}
+
+void ASoulPlayerController::OnGunAmmoChanged(int32 CurrentAmmo, int32 MaxAmmo)
+{
+    if (!HUDWidget)
+    {
+        return;
+    }
+
+    const ASoulCharacter* SoulCharacter = GetSoulCharacter();
+    const bool bHasGunEquipped = SoulCharacter && SoulCharacter->GetCurrentWeaponType() == EWeaponType::Gun;
+    const int32 AmmoToShow = bHasGunEquipped ? CurrentAmmo : 0;
+    const int32 MaxAmmoToShow = bHasGunEquipped ? MaxAmmo : 0;
+
+    HUDWidget->SetGunAmmo(AmmoToShow, MaxAmmoToShow, bHasGunEquipped);
 }
 
 void ASoulPlayerController::ShowInteractPrompt(bool bShow, const FText& Text)
@@ -972,6 +988,19 @@ void ASoulPlayerController::RefreshHUD()
     HUDWidget->SetInventoryComponent(CachedInventoryComponent.Get());
     HUDWidget->RefreshStats();
     HUDWidget->RefreshQuickSlots();
+
+    int32 CurrentAmmo = 0;
+    int32 MaxAmmo = 0;
+    bool bHasGunEquipped = false;
+
+    if (ASoulCharacter* SoulCharacter = GetSoulCharacter())
+    {
+        CurrentAmmo = SoulCharacter->GetRemainingGunShots();
+        MaxAmmo = SoulCharacter->GetMaxGunShots();
+        bHasGunEquipped = SoulCharacter->GetCurrentWeaponType() == EWeaponType::Gun;
+    }
+
+    HUDWidget->SetGunAmmo(CurrentAmmo, MaxAmmo, bHasGunEquipped);
 }
 
 void ASoulPlayerController::OnInventoryChanged()

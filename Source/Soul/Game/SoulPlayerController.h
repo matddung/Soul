@@ -62,6 +62,8 @@ public:
 
     void RequestClosePauseMenu();
 
+    void OnGunAmmoChanged(int32 CurrentAmmo, int32 MaxAmmo);
+
 protected:
     virtual void BeginPlay() override;
     virtual void SetupInputComponent() override;
