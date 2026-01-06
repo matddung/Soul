@@ -85,8 +85,8 @@ protected:
     UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "UI")
     TSubclassOf<AFloatingDamageActor> FloatingDamageActorClass;
 
-    UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Animation")
-    TSubclassOf<UEnemyAnimInstance> EnemyAnimInstanceClass;
+    UPROPERTY()
+    TObjectPtr<UEnemyAnimInstance> EnemyAnimInstance;
 
     FTimerHandle AttackTimerHandle;
     FTimerHandle HitReactTimerHandle;

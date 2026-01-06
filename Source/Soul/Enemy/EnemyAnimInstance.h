@@ -16,6 +16,7 @@ public:
     virtual void NativeUpdateAnimation(float DeltaSeconds) override;
 
     float PlayAttackMontage();
+    float PlayHitReactMontage();
 
 protected:
     UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Pawn", meta = (AllowPrivateAccess = "true"))
@@ -35,6 +36,9 @@ protected:
 
     UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Animation", meta = (AllowPrivateAccess = "true"))
     TObjectPtr<UAnimMontage> AttackMontage = nullptr;
+
+    UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Animation", meta = (AllowPrivateAccess = "true"))
+    TObjectPtr<UAnimMontage> HitReactMontage = nullptr;
 
     TWeakObjectPtr<AEnemyBase> CachedEnemy;
 };

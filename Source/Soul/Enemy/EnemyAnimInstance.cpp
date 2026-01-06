@@ -67,3 +67,13 @@ float UEnemyAnimInstance::PlayAttackMontage()
 
     return Montage_Play(AttackMontage);
 }
+
+float UEnemyAnimInstance::PlayHitReactMontage()
+{
+    if (!HitReactMontage)
+    {
+        return 0.f;
+    }
+
+    return Montage_Play(HitReactMontage);
+}

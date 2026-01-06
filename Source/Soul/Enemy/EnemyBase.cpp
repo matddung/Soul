@@ -21,8 +21,6 @@ AEnemyBase::AEnemyBase()
     HPBarWidgetComponent->SetWidgetSpace(EWidgetSpace::Screen);
     HPBarWidgetComponent->SetRelativeLocation(FVector(0.f, 0.f, 120.f));
     HPBarWidgetComponent->SetWidgetClass(UEnemyHPBarWidget::StaticClass());
-
-    EnemyAnimInstanceClass = UEnemyAnimInstance::StaticClass();
 }
 
 void AEnemyBase::BeginPlay()
@@ -33,9 +31,9 @@ void AEnemyBase::BeginPlay()
 
     UpdateHPBar();
 
-    if (USkeletalMeshComponent* SkeletalMesh = GetMesh())
+    if (HPBarWidgetComponent)
     {
-        SkeletalMesh->SetAnimInstanceClass(EnemyAnimInstanceClass);
+        HPBarWidgetComponent->SetVisibility(false);
     }
 
     if (UCharacterMovementComponent* CharacterMovementComponent = GetCharacterMovement())
@@ -62,16 +60,18 @@ float AEnemyBase::TakeDamage(float DamageAmount, FDamageEvent const& DamageEvent
     CurrentHP = FMath::Clamp(CurrentHP - FinalDamage, 0.f, MaxHP);
 
     SpawnFloatingDamage(FinalDamage);
+    if (HPBarWidgetComponent)
+    {
+        HPBarWidgetComponent->SetVisibility(true);
+    }
     UpdateHPBar();
 
     if (CurrentHP <= 0.f)
     {
-        bIsDead = true;
         HandleDeath();
     }
     else
     {
-        bIsHitReacting = true;
         HandleHitReaction();
     }
 
@@ -132,9 +132,9 @@ void AEnemyBase::DoAttack(AActor* Target)
         UGameplayStatics::ApplyDamage(Target, AttackDamage, GetController(), this, nullptr);
     }
 
-    if (UEnemyAnimInstance* EnemyAnimInstance = GetMesh() ? Cast<UEnemyAnimInstance>(GetMesh()->GetAnimInstance()) : nullptr)
+    if (UEnemyAnimInstance* EnemyAnim = GetMesh() ? Cast<UEnemyAnimInstance>(GetMesh()->GetAnimInstance()) : nullptr)
     {
-        const float Duration = EnemyAnimInstance->PlayAttackMontage();
+        const float Duration = EnemyAnim->PlayAttackMontage();
         if (Duration > 0.f)
         {
             GetWorldTimerManager().SetTimer(AttackTimerHandle, this, &AEnemyBase::ResetAttackState, Duration, false);
@@ -147,6 +147,12 @@ void AEnemyBase::DoAttack(AActor* Target)
 
 void AEnemyBase::HandleDeath()
 {
+    if (bIsDead)
+    {
+        return;
+    }
+
+    bIsDead = true;
     bIsHitReacting = false;
     bIsAttacking = false;
 
@@ -172,11 +178,28 @@ void AEnemyBase::HandleDeath()
     }
 
     DetachFromControllerPendingDestroy();
+
+    SetLifeSpan(3.f);
 }
 
 void AEnemyBase::HandleHitReaction()
 {
-    ResetHitReaction();
+    if (bIsDead)
+    {
+        return;
+    }
+
+    bIsHitReacting = true;
+
+    if (UEnemyAnimInstance* EnemyAnim = GetMesh() ? Cast<UEnemyAnimInstance>(GetMesh()->GetAnimInstance()) : nullptr)
+    {
+        const float Duration = EnemyAnim->PlayHitReactMontage();
+        const float RecoveryTime = (Duration > 0.f) ? Duration : 0.3f;
+        GetWorldTimerManager().SetTimer(HitReactTimerHandle, this, &AEnemyBase::ResetHitReaction, RecoveryTime, false);
+        return;
+    }
+
+    GetWorldTimerManager().SetTimer(HitReactTimerHandle, this, &AEnemyBase::ResetHitReaction, 0.3f, false);
 }
 
 void AEnemyBase::ResetAttackState()
@@ -187,6 +210,8 @@ void AEnemyBase::ResetAttackState()
 void AEnemyBase::ResetHitReaction()
 {
     bIsHitReacting = false;
+
+    GetWorldTimerManager().ClearTimer(HitReactTimerHandle);
 }
 
 void AEnemyBase::UpdateHPBar()
