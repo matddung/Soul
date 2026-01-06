@@ -654,7 +654,7 @@ void UInventoryWidget::EnsureEnhancementDialog()
             TitleText->SetText(NSLOCTEXT("InventoryWidget", "EnhancementDialogTitle", "Select Weapon to Enhance"));
             TitleText->SetJustification(ETextJustify::Center);
 
-            FSlateFontInfo TitleFont = TitleText->Font;
+            FSlateFontInfo TitleFont = TitleText->GetFont();
             TitleFont.Size = 22;
             TitleText->SetFont(TitleFont);
 
@@ -690,7 +690,7 @@ void UInventoryWidget::EnsureEnhancementDialog()
                         ButtonText->SetText(Label);
                         ButtonText->SetJustification(ETextJustify::Center);
 
-                        FSlateFontInfo ButtonFont = ButtonText->Font;
+                        FSlateFontInfo ButtonFont = ButtonText->GetFont();
                         ButtonFont.Size = 20;
                         ButtonText->SetFont(ButtonFont);
                         OutButton->SetContent(ButtonText);
