@@ -2,6 +2,7 @@
 #include "../UI/EnemyHPBarWidget.h"
 #include "../UI/FloatingDamageActor.h"
 #include "EnemyAnimInstance.h"
+#include "EnemyAIController.h"
 
 #include "Components/CapsuleComponent.h"
 #include "GameFramework/CharacterMovementComponent.h"
@@ -15,6 +16,9 @@
 AEnemyBase::AEnemyBase()
 {
     PrimaryActorTick.bCanEverTick = false;
+
+    AIControllerClass = AEnemyAIController::StaticClass();
+    AutoPossessAI = EAutoPossessAI::PlacedInWorldOrSpawned;
 
     HPBarWidgetComponent = CreateDefaultSubobject<UWidgetComponent>(TEXT("HPBarWidget"));
     HPBarWidgetComponent->SetupAttachment(GetCapsuleComponent());

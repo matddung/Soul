@@ -11,4 +11,5 @@ class SOUL_API AEnemyMelee : public AEnemyBase
 	
 public:
 	AEnemyMelee();
+
 };

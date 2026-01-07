@@ -5,7 +5,7 @@ AEnemyMelee::AEnemyMelee()
 {
     MaxHP = 150.f;
     MovementSpeed = 400.f;
-    AttackRange = 250.f;
-    AttackCooldown = 1.25f;
+    AttackRange = 200.f;
+    AttackCooldown = 2.f;
     AttackDamage = 20.f;
 }

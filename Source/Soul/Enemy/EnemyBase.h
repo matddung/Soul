@@ -9,6 +9,7 @@ class UWidgetComponent;
 class UEnemyHPBarWidget;
 class AFloatingDamageActor;
 class UEnemyAnimInstance;
+class UEnemyAIConfig;
 
 UCLASS()
 class SOUL_API AEnemyBase : public ACharacter
@@ -44,6 +45,13 @@ protected:
     virtual void ResetHitReaction();
     virtual void UpdateHPBar();
     void SpawnFloatingDamage(float Damage);
+
+public:
+    UPROPERTY(EditInstanceOnly, BlueprintReadOnly, Category = "AI")
+    TArray<TObjectPtr<AActor>> PatrolRoutePoints;
+
+    UPROPERTY(VisibleInstanceOnly, BlueprintReadOnly, Category = "AI")
+    int32 PatrolRouteIndex = 0;
 
 protected:
     UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Stats")
@@ -87,6 +95,9 @@ protected:
 
     UPROPERTY()
     TObjectPtr<UEnemyAnimInstance> EnemyAnimInstance;
+
+    UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "AI")
+    TObjectPtr<UEnemyAIConfig> AIConfig;
 
     FTimerHandle AttackTimerHandle;
     FTimerHandle HitReactTimerHandle;
