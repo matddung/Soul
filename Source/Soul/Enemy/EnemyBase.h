@@ -46,13 +46,6 @@ protected:
     virtual void UpdateHPBar();
     void SpawnFloatingDamage(float Damage);
 
-public:
-    UPROPERTY(EditInstanceOnly, BlueprintReadOnly, Category = "AI")
-    TArray<TObjectPtr<AActor>> PatrolRoutePoints;
-
-    UPROPERTY(VisibleInstanceOnly, BlueprintReadOnly, Category = "AI")
-    int32 PatrolRouteIndex = 0;
-
 protected:
     UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Stats")
     float MaxHP;
@@ -95,9 +88,6 @@ protected:
 
     UPROPERTY()
     TObjectPtr<UEnemyAnimInstance> EnemyAnimInstance;
-
-    UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "AI")
-    TObjectPtr<UEnemyAIConfig> AIConfig;
 
     FTimerHandle AttackTimerHandle;
     FTimerHandle HitReactTimerHandle;
