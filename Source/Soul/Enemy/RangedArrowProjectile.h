@@ -20,6 +20,9 @@ public:
     UProjectileMovementComponent* GetProjectileMovement() const { return ProjectileMovement; }
 
 protected:
+    virtual void BeginPlay() override;
+
+protected:
     UPROPERTY(VisibleAnywhere)
     TObjectPtr<USphereComponent> Collision;
 

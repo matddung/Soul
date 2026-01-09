@@ -246,6 +246,11 @@ void AEnemyBase::HandleDeath()
         HPBarWidgetComponent->SetVisibility(false);
     }
 
+    if (UEnemyAnimInstance* EnemyAnim = EnemyAnimInstance ? EnemyAnimInstance.Get() : (GetMesh() ? Cast<UEnemyAnimInstance>(GetMesh()->GetAnimInstance()) : nullptr))
+    {
+        EnemyAnim->PlayDeathMontage();
+    }
+
     DetachFromControllerPendingDestroy();
 
     SetLifeSpan(3.f);

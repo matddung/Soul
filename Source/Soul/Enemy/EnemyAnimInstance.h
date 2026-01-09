@@ -19,6 +19,7 @@ public:
 
     float PlayAttackMontage();
     float PlayHitReactMontage();
+    void PlayDeathMontage();
 
 protected:
     UFUNCTION()
@@ -51,6 +52,9 @@ protected:
 
     UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Animation", meta = (AllowPrivateAccess = "true"))
     TObjectPtr<UAnimMontage> HitReactMontage = nullptr;
+
+    UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Animation", meta = (AllowPrivateAccess = "true"))
+    TObjectPtr<UAnimMontage> DeathMontage = nullptr;
 
     TWeakObjectPtr<AEnemyBase> CachedEnemy;
 };

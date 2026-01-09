@@ -24,7 +24,7 @@ EBTNodeResult::Type UBTTask_ExecuteAttack::ExecuteTask(UBehaviorTreeComponent& O
     const bool bDidAttack = Enemy->CanAttack(Target);
     if (!bDidAttack)
     {
-        return EBTNodeResult::Failed;
+        return EBTNodeResult::Succeeded;
     }
 
     Enemy->DoAttack(Target);

@@ -216,8 +216,6 @@ float ASoulCharacter::TakeDamage(float DamageAmount, FDamageEvent const& DamageE
 			SpawnDamageText(this, FinalDamage);
 			AppliedDamage = FinalDamage;
 		}
-
-		UE_LOG(LogTemp, Log, TEXT("TakeDamage | Damage: %.2f | HP: %.2f / %.2f"), FinalDamage, StatComp->HP, StatComp->MaxHP);
 	}
 
 	return AppliedDamage;
@@ -705,8 +703,6 @@ void ASoulCharacter::DoGunShot()
 				const float Damage = StatComp ? StatComp->GetGunDamage() : 0;
 
 				UGameplayStatics::ApplyPointDamage(HitActor, Damage, Direction, HitResult, GetController(), this, nullptr);
-
-				UE_LOG(LogTemp, Warning, TEXT("Gun hit actor: %s"), *HitActor->GetName());
 			}
 		}
 	}
@@ -800,7 +796,6 @@ void ASoulCharacter::AttackCheck()
 			const float Damage = StatComp ? StatComp->GetSwordDamage() : 0;
 
 			UGameplayStatics::ApplyPointDamage(HitActor, Damage, GetActorForwardVector(), HitResult, GetController(), this, nullptr);
-			UE_LOG(LogTemp, Warning, TEXT("Hit Actor Name : %s"), *HitActor->GetName());
 		}
 	}
 }
@@ -903,6 +898,11 @@ void ASoulCharacter::HandleDead()
 	UpdateMovementSpeed();
 
 	SetActorEnableCollision(false);
+
+	if (AnimInstance)
+	{
+		AnimInstance->PlayDeathMontage();
+	}
 }
 
 void ASoulCharacter::OnHitDamage()
@@ -1364,14 +1364,12 @@ void ASoulCharacter::GiveGunFromBox(bool bAutoEquip)
 {
 	if (!WeaponComponent || !DefaultGunData)
 	{
-		UE_LOG(LogTemp, Warning, TEXT("GiveGunFromBox failed: WeaponComponent or DefaultGunData is null"));
 		return;
 	}
 
 	if (!WeaponComponent->HasWeapon(EWeaponType::Gun))
 	{
 		WeaponComponent->GiveWeapon(DefaultGunData);
-		UE_LOG(LogTemp, Log, TEXT("Gun acquired! (not equipped)"));
 	}
 
 	ResetGunShots();
@@ -1399,7 +1397,6 @@ bool ASoulCharacter::EnhanceWeapon(EWeaponType Type)
 
 	if (StatComp->EnhanceWeapon(Type))
 	{
-		UE_LOG(LogTemp, Log, TEXT("Enhanced weapon %d"), static_cast<int32>(Type));
 		return true;
 	}
 

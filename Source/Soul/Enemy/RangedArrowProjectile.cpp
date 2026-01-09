@@ -37,6 +37,21 @@ ARangedArrowProjectile::ARangedArrowProjectile()
     InitialLifeSpan = 10.f;
 }
 
+void ARangedArrowProjectile::BeginPlay()
+{
+    Super::BeginPlay();
+
+    if (AActor* OwnerActor = GetOwner())
+    {
+        Collision->IgnoreActorWhenMoving(OwnerActor, true);
+    }
+
+    if (APawn* Inst = GetInstigator())
+    {
+        Collision->IgnoreActorWhenMoving(Inst, true);
+    }
+}
+
 void ARangedArrowProjectile::InitProjectile(AController* InInstigatorController, AActor* InDamageCauser, float InDamage)
 {
     InstigatorController = InInstigatorController;

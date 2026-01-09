@@ -69,6 +69,11 @@ bool USoulAnimInstance::IsSprinting() const
 
 ECharacterAnimState USoulAnimInstance::GetCharacterState() const
 {
+	if (bIsDead)
+	{
+		return ECharacterAnimState::Dead;
+	}
+
 	if (IsAttacking())
 	{
 		return ECharacterAnimState::Attacking;
@@ -230,6 +235,17 @@ void USoulAnimInstance::PlayLadderTopExitMontage()
 	}
 
 	Montage_Play(LadderTopExitMontage, 1);
+}
+
+void USoulAnimInstance::PlayDeathMontage()
+{
+	if (!DeathMontage)
+	{
+		return;
+	}
+
+	Montage_Stop(0.0f);
+	Montage_Play(DeathMontage, 1);
 }
 
 void USoulAnimInstance::AnimNotify_LadderTopMountEnd()

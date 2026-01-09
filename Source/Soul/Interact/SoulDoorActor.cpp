@@ -169,7 +169,6 @@ void ASoulDoorActor::OnPortalBeginOverlap(UPrimitiveComponent*, AActor* OtherAct
 
 	if (TargetLevelName.IsNone())
 	{
-		UE_LOG(LogTemp, Warning, TEXT("Door portal has no TargetLevelName set."));
 		return;
 	}
 

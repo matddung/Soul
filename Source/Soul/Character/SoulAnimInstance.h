@@ -58,6 +58,7 @@ public:
 
 	void PlayLadderTopMountMontage();
 	void PlayLadderTopExitMontage();
+	void PlayDeathMontage();
 
 protected:
 	UFUNCTION()
@@ -128,6 +129,9 @@ protected:
 
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Interact", Meta = (AllowPrivateAccess = true))
 	TObjectPtr<UAnimMontage> LadderTopExitMontage;
+
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "State", Meta = (AllowPrivateAccess = true))
+	TObjectPtr<UAnimMontage> DeathMontage;
 
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Pawn", Meta = (AllowPrivateAccess = true))
 	bool IsInAir = false;

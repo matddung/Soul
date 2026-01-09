@@ -81,6 +81,17 @@ float UEnemyAnimInstance::PlayHitReactMontage()
     return Montage_Play(HitReactMontage);
 }
 
+void UEnemyAnimInstance::PlayDeathMontage()
+{
+    if (!DeathMontage)
+    {
+        return;
+    }
+
+    Montage_Stop(0.0f);
+    Montage_Play(DeathMontage, 1.0f);
+}
+
 void UEnemyAnimInstance::AnimNotify_AttackHitCheck()
 {
     OnAttackHitCheck.Broadcast();
