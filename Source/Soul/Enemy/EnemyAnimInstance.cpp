@@ -1,8 +1,11 @@
 #include "EnemyAnimInstance.h"
 #include "EnemyBase.h"
+#include "EnemyRanged.h"
 
 #include "GameFramework/CharacterMovementComponent.h"
 #include "Animation/AnimMontage.h"
+#include "AIController.h"
+#include "BehaviorTree/BlackboardComponent.h"
 
 void UEnemyAnimInstance::NativeInitializeAnimation()
 {
@@ -65,7 +68,7 @@ float UEnemyAnimInstance::PlayAttackMontage()
         return 0.f;
     }
 
-    return Montage_Play(AttackMontage);
+    return Montage_Play(AttackMontage, 0.5f);
 }
 
 float UEnemyAnimInstance::PlayHitReactMontage()
@@ -76,4 +79,45 @@ float UEnemyAnimInstance::PlayHitReactMontage()
     }
 
     return Montage_Play(HitReactMontage);
+}
+
+void UEnemyAnimInstance::AnimNotify_AttackHitCheck()
+{
+    OnAttackHitCheck.Broadcast();
+}
+
+void UEnemyAnimInstance::AnimNotify_SpawnProjectile()
+{
+    APawn* OwnerPawn = TryGetPawnOwner();
+    if (!OwnerPawn)
+    {
+        return;
+    }
+
+    AEnemyRanged* Enemy = Cast<AEnemyRanged>(OwnerPawn);
+    if (!Enemy)
+    {
+        return;
+    }
+
+    AAIController* AICon = Cast<AAIController>(Enemy->GetController());
+    if (!AICon)
+    {
+        return;
+    }
+
+    UBlackboardComponent* BB = AICon->GetBlackboardComponent();
+    if (!BB)
+    {
+        return;
+    }
+
+    static const FName TargetKey(TEXT("Target"));
+    AActor* TargetActor = Cast<AActor>(BB->GetValueAsObject(TargetKey));
+    if (!IsValid(TargetActor))
+    {
+        return;
+    }
+
+    Enemy->SpawnProjectileAtTarget(TargetActor);
 }

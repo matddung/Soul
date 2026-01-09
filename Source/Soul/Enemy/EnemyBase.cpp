@@ -11,10 +11,22 @@
 #include "Animation/AnimMontage.h"
 #include "Kismet/GameplayStatics.h"
 #include "TimerManager.h"
+#include "AIController.h"
+#include "BehaviorTree/BlackboardComponent.h"
 
 AEnemyBase::AEnemyBase()
 {
     PrimaryActorTick.bCanEverTick = false;
+
+    if (UCapsuleComponent* Capsule = GetCapsuleComponent())
+    {
+        Capsule->SetCollisionResponseToChannel(ECC_Camera, ECR_Ignore);
+    }
+
+    if (USkeletalMeshComponent* MeshComp = GetMesh())
+    {
+        MeshComp->SetCollisionResponseToChannel(ECC_Camera, ECR_Ignore);
+    }
 
     HPBarWidgetComponent = CreateDefaultSubobject<UWidgetComponent>(TEXT("HPBarWidget"));
     HPBarWidgetComponent->SetupAttachment(GetCapsuleComponent());
@@ -26,6 +38,25 @@ AEnemyBase::AEnemyBase()
 void AEnemyBase::BeginPlay()
 {
     Super::BeginPlay();
+
+    PatrolOrigin = GetActorLocation();
+
+    TInlineComponentArray<UPrimitiveComponent*> PrimitiveComponents;
+    GetComponents(PrimitiveComponents);
+    for (UPrimitiveComponent* PrimitiveComponent : PrimitiveComponents)
+    {
+        if (!PrimitiveComponent)
+        {
+            continue;
+        }
+
+        if (PrimitiveComponent->GetCollisionEnabled() == ECollisionEnabled::NoCollision)
+        {
+            continue;
+        }
+
+        PrimitiveComponent->SetCollisionResponseToChannel(ECC_Camera, ECR_Ignore);
+    }
 
     CurrentHP = MaxHP;
 
@@ -39,6 +70,12 @@ void AEnemyBase::BeginPlay()
     if (UCharacterMovementComponent* CharacterMovementComponent = GetCharacterMovement())
     {
         CharacterMovementComponent->MaxWalkSpeed = MovementSpeed;
+    }
+
+    if (UEnemyAnimInstance* EnemyAnim = GetMesh() ? Cast<UEnemyAnimInstance>(GetMesh()->GetAnimInstance()) : nullptr)
+    {
+        EnemyAnimInstance = EnemyAnim;
+        EnemyAnimInstance->OnAttackHitCheck.AddUObject(this, &AEnemyBase::AttackHitCheck);
     }
 }
 
@@ -57,13 +94,40 @@ float AEnemyBase::TakeDamage(float DamageAmount, FDamageEvent const& DamageEvent
         return 0.f;
     }
 
+    AActor* Causer = DamageCauser;
+
+    if (!IsValid(Causer) && EventInstigator)
+    {
+        Causer = EventInstigator->GetPawn();
+    }
+
+    APawn* CauserPawn = Cast<APawn>(Causer);
+    if (!CauserPawn && EventInstigator)
+    {
+        CauserPawn = EventInstigator->GetPawn();
+    }
+
+    if (IsValid(CauserPawn) && CauserPawn->IsPlayerControlled())
+    {
+        if (AAIController* AICon = Cast<AAIController>(GetController()))
+        {
+            if (UBlackboardComponent* BB = AICon->GetBlackboardComponent())
+            {
+                static const FName TargetKey(TEXT("Target"));
+                BB->SetValueAsObject(TargetKey, CauserPawn);
+            }
+        }
+    }
+
     CurrentHP = FMath::Clamp(CurrentHP - FinalDamage, 0.f, MaxHP);
 
     SpawnFloatingDamage(FinalDamage);
+
     if (HPBarWidgetComponent)
     {
         HPBarWidgetComponent->SetVisibility(true);
     }
+
     UpdateHPBar();
 
     if (CurrentHP <= 0.f)
@@ -124,15 +188,19 @@ void AEnemyBase::DoAttack(AActor* Target)
         return;
     }
 
+    CurrentTarget = Target;
     bIsAttacking = true;
     LastAttackTime = GetWorld() ? GetWorld()->GetTimeSeconds() : 0.f;
 
-    if (Target)
+    if (UCharacterMovementComponent* CharacterMovementComp = GetCharacterMovement())
     {
-        UGameplayStatics::ApplyDamage(Target, AttackDamage, GetController(), this, nullptr);
+        CachedMovementMode = CharacterMovementComp->MovementMode;
+        CharacterMovementComp->StopMovementImmediately();
+        CharacterMovementComp->DisableMovement();
+        bMovementPausedForAttack = true;
     }
 
-    if (UEnemyAnimInstance* EnemyAnim = GetMesh() ? Cast<UEnemyAnimInstance>(GetMesh()->GetAnimInstance()) : nullptr)
+    if (UEnemyAnimInstance* EnemyAnim = EnemyAnimInstance ? EnemyAnimInstance.Get() : (GetMesh() ? Cast<UEnemyAnimInstance>(GetMesh()->GetAnimInstance()) : nullptr))
     {
         const float Duration = EnemyAnim->PlayAttackMontage();
         if (Duration > 0.f)
@@ -155,6 +223,7 @@ void AEnemyBase::HandleDeath()
     bIsDead = true;
     bIsHitReacting = false;
     bIsAttacking = false;
+    bMovementPausedForAttack = false;
 
     GetWorldTimerManager().ClearTimer(AttackTimerHandle);
     GetWorldTimerManager().ClearTimer(HitReactTimerHandle);
@@ -205,6 +274,16 @@ void AEnemyBase::HandleHitReaction()
 void AEnemyBase::ResetAttackState()
 {
     bIsAttacking = false;
+
+    if (bMovementPausedForAttack && !bIsDead)
+    {
+        if (UCharacterMovementComponent* CharacterMovementComp = GetCharacterMovement())
+        {
+            CharacterMovementComp->SetMovementMode(CachedMovementMode);
+        }
+    }
+
+    bMovementPausedForAttack = false;
 }
 
 void AEnemyBase::ResetHitReaction()
@@ -245,4 +324,26 @@ void AEnemyBase::SpawnFloatingDamage(float Damage)
     {
         DamageActor->SetDamage(Damage);
     }
+}
+
+void AEnemyBase::AttackHitCheck()
+{
+    if (bIsDead || !bIsAttacking)
+    {
+        return;
+    }
+
+    AActor* Target = CurrentTarget.Get();
+    if (!Target)
+    {
+        return;
+    }
+
+    const float DistanceToTarget = FVector::Dist(GetActorLocation(), Target->GetActorLocation());
+    if (DistanceToTarget > AttackRange)
+    {
+        return;
+    }
+
+    UGameplayStatics::ApplyDamage(Target, AttackDamage, GetController(), this, nullptr);
 }

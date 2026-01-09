@@ -912,6 +912,13 @@ void ASoulCharacter::OnHitDamage()
 		return;
 	}
 
+	if (bIsDodging)
+	{
+		bIsDodging = false;
+		bDodgeInvincible = false;
+		GetCharacterMovement()->bOrientRotationToMovement = true;
+	}
+
 	if (AnimInstance)
 	{
 		AnimInstance->PlayHitReactMontage();

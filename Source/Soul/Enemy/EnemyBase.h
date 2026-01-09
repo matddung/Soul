@@ -10,6 +10,7 @@ class UEnemyHPBarWidget;
 class AFloatingDamageActor;
 class UEnemyAnimInstance;
 class UEnemyAIConfig;
+class ATargetPoint;
 
 UCLASS()
 class SOUL_API AEnemyBase : public ACharacter
@@ -45,6 +46,23 @@ protected:
     virtual void ResetHitReaction();
     virtual void UpdateHPBar();
     void SpawnFloatingDamage(float Damage);
+    void AttackHitCheck();
+
+public:
+    UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "AI")
+    TObjectPtr<UEnemyAIConfig> AIConfig;
+
+    UPROPERTY(EditInstanceOnly, BlueprintReadOnly, Category = "AI")
+    TArray<TObjectPtr<ATargetPoint>> PatrolPoints;
+
+    UPROPERTY(VisibleInstanceOnly, BlueprintReadOnly, Category = "AI")
+    int32 CurrentPatrolIndex = -1;
+
+    UPROPERTY(VisibleInstanceOnly, BlueprintReadOnly, Category = "AI")
+    bool bPatrolForward = true;
+
+    UPROPERTY(VisibleInstanceOnly, BlueprintReadOnly, Category = "AI")
+    FVector PatrolOrigin;
 
 protected:
     UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Stats")
@@ -64,6 +82,12 @@ protected:
 
     UPROPERTY(VisibleInstanceOnly, BlueprintReadOnly, Category = "State")
     bool bIsAttacking = false;
+
+    UPROPERTY(VisibleInstanceOnly, BlueprintReadOnly, Category = "State")
+    bool bMovementPausedForAttack = false;
+
+    UPROPERTY(VisibleInstanceOnly, BlueprintReadOnly, Category = "State")
+    TEnumAsByte<EMovementMode> CachedMovementMode = MOVE_Walking;
 
     UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Combat")
     float AttackRange;

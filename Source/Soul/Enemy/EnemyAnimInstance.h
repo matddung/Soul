@@ -6,6 +6,8 @@
 
 class AEnemyBase;
 
+DECLARE_MULTICAST_DELEGATE(FOnAttackHitCheckDelegate);
+
 UCLASS()
 class SOUL_API UEnemyAnimInstance : public UAnimInstance
 {
@@ -17,6 +19,16 @@ public:
 
     float PlayAttackMontage();
     float PlayHitReactMontage();
+
+protected:
+    UFUNCTION()
+    void AnimNotify_AttackHitCheck();
+
+    UFUNCTION()
+    void AnimNotify_SpawnProjectile();
+
+public:
+    FOnAttackHitCheckDelegate OnAttackHitCheck;
 
 protected:
     UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Pawn", meta = (AllowPrivateAccess = "true"))

@@ -4,6 +4,8 @@
 #include "EnemyBase.h"
 #include "EnemyRanged.generated.h"
 
+class ARangedArrowProjectile;
+
 UCLASS()
 class SOUL_API AEnemyRanged : public AEnemyBase
 {
@@ -11,4 +13,14 @@ class SOUL_API AEnemyRanged : public AEnemyBase
 	
 public:
 	AEnemyRanged();
+
+	UFUNCTION(BlueprintCallable, Category = "Attack")
+	void SpawnProjectileAtTarget(AActor* TargetActor);
+
+protected:
+	UPROPERTY(EditDefaultsOnly, Category = "Attack")
+	TSubclassOf<ARangedArrowProjectile> ProjectileClass;
+
+	UPROPERTY(EditDefaultsOnly, Category = "Attack")
+	FName MuzzleSocketName = TEXT("arrow_anchor");
 };
