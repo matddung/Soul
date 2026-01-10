@@ -154,12 +154,6 @@ void UPauseMenuWidget::OnQuitClicked()
 
 void UPauseMenuWidget::OnBackFromSettingsClicked()
 {
-	if (OnBackFromSettingsRequested.IsBound())
-	{
-		OnBackFromSettingsRequested.Broadcast();
-		return;
-	}
-
 	ShowMain();
 }
 

@@ -7,6 +7,7 @@
 ASoulMainMenuGameMode::ASoulMainMenuGameMode()
 {
 	DefaultPawnClass = nullptr;
+	PlayerControllerClass = nullptr;
 }
 
 void ASoulMainMenuGameMode::BeginPlay()

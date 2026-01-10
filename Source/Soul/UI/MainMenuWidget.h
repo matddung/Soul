@@ -5,9 +5,6 @@
 #include "MainMenuWidget.generated.h"
 
 class UButton;
-class UPauseMenuWidget;
-class USoundMix;
-class USoundClass;
 
 UCLASS()
 class SOUL_API UMainMenuWidget : public UUserWidget
@@ -25,17 +22,12 @@ protected:
 	void OnNewGameClicked();
 
 	UFUNCTION()
-	void OnSettingsClicked();
-
-	UFUNCTION()
 	void OnQuitClicked();
 
 	UFUNCTION()
 	void HandleSettingsBackRequested();
 
 	void RefreshContinueVisibility();
-	void ApplyInitialAudioSettings();
-	void ShowSettingsMenu();
 	void ShowMainMenu();
 	bool HasSavedGame() const;
 
@@ -47,29 +39,8 @@ protected:
 	UButton* Btn_NewGame;
 
 	UPROPERTY(meta = (BindWidget))
-	UButton* Btn_Settings;
-
-	UPROPERTY(meta = (BindWidget))
 	UButton* Btn_Quit;
-
-	UPROPERTY(EditDefaultsOnly, Category = "UI")
-	TSubclassOf<UPauseMenuWidget> SettingsWidgetClass;
 
 	UPROPERTY(EditDefaultsOnly, Category = "Level")
 	FName MainGameLevelName = FName("MainMap");
-
-	UPROPERTY(EditDefaultsOnly, Category = "Audio")
-	USoundMix* MasterSoundMix;
-
-	UPROPERTY(EditDefaultsOnly, Category = "Audio")
-	USoundClass* MasterSoundClass;
-
-	UPROPERTY(EditDefaultsOnly, Category = "Audio", meta = (ClampMin = "0.0", ClampMax = "1.0"))
-	float DefaultMasterVolume = 1.0f;
-
-private:
-	UPROPERTY(Transient)
-	TObjectPtr<UPauseMenuWidget> SettingsWidget;
-
-	float CachedMasterVolume = 1.0f;
 };
