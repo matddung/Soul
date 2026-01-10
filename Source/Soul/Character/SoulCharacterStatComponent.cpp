@@ -330,3 +330,63 @@ bool USoulCharacterStatComponent::RestoreHP(float Amount)
 
 	return !FMath::IsNearlyEqual(OldHP, HP);
 }
+
+bool USoulCharacterStatComponent::ConsumeStamina(float Amount)
+{
+	if (Amount <= 0)
+	{
+		return true;
+	}
+
+	if (Stamina <= 0)
+	{
+		return false;
+	}
+
+	const float OldStamina = Stamina;
+	const float NewStamina = FMath::Clamp(OldStamina - Amount, 0.0f, MaxStamina);
+	Stamina = NewStamina;
+
+	if (!FMath::IsNearlyEqual(OldStamina, Stamina))
+	{
+		OnStatChanged.Broadcast();
+		StartStaminaRegenDelay();
+	}
+
+	return OldStamina >= Amount;
+}
+
+void USoulCharacterStatComponent::RegenerateStamina(float DeltaSeconds)
+{
+	if (!bCanRegenStamina || Stamina >= MaxStamina)
+	{
+		return;
+	}
+
+	const float OldStamina = Stamina;
+	Stamina = FMath::Clamp(Stamina + StaminaRegenRate * DeltaSeconds, 0.0f, MaxStamina);
+
+	if (!FMath::IsNearlyEqual(OldStamina, Stamina))
+	{
+		OnStatChanged.Broadcast();
+	}
+}
+
+bool USoulCharacterStatComponent::HasStamina(float Amount) const
+{
+	return Stamina >= Amount;
+}
+
+void USoulCharacterStatComponent::StartStaminaRegenDelay()
+{
+	bCanRegenStamina = false;
+
+	if (UWorld* World = GetWorld())
+	{
+		World->GetTimerManager().ClearTimer(StaminaRegenTimer);
+		World->GetTimerManager().SetTimer(StaminaRegenTimer, [this]()
+			{
+				bCanRegenStamina = true;
+			}, StaminaRegenDelay, false);
+	}
+}

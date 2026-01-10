@@ -31,10 +31,20 @@ void AEnemyBoss::BeginPlay()
         EnemyAnimInstance->OnSkillEffect.AddUObject(this, &AEnemyBoss::HandleSkillEffect);
         EnemyAnimInstance->OnSkillHitCheck.AddUObject(this, &AEnemyBoss::HandleSkillHitCheck);
     }
+
+    if (UAnimInstance* AnimInstance = GetMesh() ? GetMesh()->GetAnimInstance() : nullptr)
+    {
+        AnimInstance->OnMontageEnded.AddDynamic(this, &AEnemyBoss::OnSkillMontageEnded);
+    }
 }
 
 float AEnemyBoss::TakeDamage(float DamageAmount, FDamageEvent const& DamageEvent, AController* EventInstigator, AActor* DamageCauser)
 {
+    if (bIsUsingHalfHpSkill)
+    {
+        return 0.f;
+    }
+
     const float ActualDamage = Super::TakeDamage(DamageAmount, DamageEvent, EventInstigator, DamageCauser);
 
     TryTriggerHalfHpSkill();
@@ -68,6 +78,8 @@ void AEnemyBoss::HandleDeath()
 
     GetWorldTimerManager().ClearTimer(HalfHpSkillTimerHandle);
     bHalfHpSkillPending = false;
+    bIsUsingHalfHpSkill = false;
+    StopSkillEffectParticle();
 }
 
 void AEnemyBoss::TryTriggerHalfHpSkill()
@@ -102,6 +114,7 @@ void AEnemyBoss::ExecuteHalfHpSkill()
     bHasTriggeredHalfHpSkill = true;
     bHalfHpSkillPending = false;
     bIsAttacking = true;
+    bIsUsingHalfHpSkill = true;
 
     if (UCharacterMovementComponent* CharacterMovementComp = GetCharacterMovement())
     {
@@ -130,6 +143,8 @@ void AEnemyBoss::ExecuteHalfHpSkill()
 void AEnemyBoss::ResetSkillState()
 {
     GetWorldTimerManager().ClearTimer(HalfHpSkillTimerHandle);
+    bIsUsingHalfHpSkill = false;
+    StopSkillEffectParticle();
     ResetAttackState();
 }
 
@@ -140,9 +155,11 @@ void AEnemyBoss::HandleSkillEffect()
         return;
     }
 
+    StopSkillEffectParticle();
+
     const FVector BossLocation = GetActorLocation();
     const FVector EffectLocation(BossLocation.X, BossLocation.Y, 0.f);
-    UGameplayStatics::SpawnEmitterAtLocation(GetWorld(), SkillEffectParticle, EffectLocation, GetActorRotation());
+    ActiveSkillEffectParticle = UGameplayStatics::SpawnEmitterAtLocation(GetWorld(), SkillEffectParticle, EffectLocation, GetActorRotation());
 }
 
 void AEnemyBoss::HandleSkillHitCheck()
@@ -158,6 +175,10 @@ void AEnemyBoss::HandleSkillHitCheck()
         return;
     }
 
+#if ENABLE_DRAW_DEBUG
+    DrawDebugSphere(GetWorld(), GetActorLocation(), SkillHitRadius, 24, FColor::Red, false, 1.0f);
+#endif
+
     const float DistanceToPlayer = FVector::Dist(PlayerCharacter->GetActorLocation(), GetActorLocation());
     if (DistanceToPlayer > SkillHitRadius)
     {
@@ -168,4 +189,23 @@ void AEnemyBoss::HandleSkillHitCheck()
 
     TGuardValue<bool> ApplyingSkillDamageGuard(bIsApplyingSkillDamage, true);
     UGameplayStatics::ApplyDamage(PlayerCharacter, SkillDamage, GetController(), this, nullptr);
+}
+
+void AEnemyBoss::StopSkillEffectParticle()
+{
+    if (ActiveSkillEffectParticle)
+    {
+        ActiveSkillEffectParticle->DeactivateSystem();
+        ActiveSkillEffectParticle = nullptr;
+    }
+}
+
+void AEnemyBoss::OnSkillMontageEnded(UAnimMontage* Montage, bool bInterrupted)
+{
+    if (Montage != HalfHpSkillMontage)
+    {
+        return;
+    }
+
+    ResetSkillState();
 }

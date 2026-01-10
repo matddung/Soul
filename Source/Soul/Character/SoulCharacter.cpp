@@ -106,6 +106,12 @@ void ASoulCharacter::PostInitializeComponents()
 
 		if (IsComboInputOn)
 		{
+			if (!TryConsumeStamina(SwordAttackStaminaCost))
+			{
+				IsComboInputOn = false;
+				return;
+			}
+
 			AttackStartComboState();
 			AnimInstance->JumpToAttackMontageSection(CurrentCombo);
 		}
@@ -195,6 +201,8 @@ void ASoulCharacter::Tick(float DeltaSeconds)
 		UpdateTopMountMove(DeltaSeconds);
 		return;
 	}
+
+	UpdateStamina(DeltaSeconds);
 }
 
 float ASoulCharacter::TakeDamage(float DamageAmount, FDamageEvent const& DamageEvent, AController* EventInstigator, AActor* DamageCauser)
@@ -376,6 +384,11 @@ void ASoulCharacter::SprintStart(const FInputActionValue& Value)
 	}
 
 	if (IsAnimationBlockingActions())
+	{
+		return;
+	}
+
+	if (StatComp && !StatComp->HasStamina(1.0f))
 	{
 		return;
 	}
@@ -615,6 +628,12 @@ void ASoulCharacter::HandleSwordAttack()
 		{
 			return;
 		}
+
+		if (!TryConsumeStamina(SwordAttackStaminaCost))
+		{
+			return;
+		}
+
 		AttackStartComboState();
 		AnimInstance->PlaySwordAttackMontage();
 		AnimInstance->JumpToAttackMontageSection(CurrentCombo);
@@ -840,6 +859,11 @@ void ASoulCharacter::Dodge(const FInputActionValue& Value)
 	}
 
 	if (!IsGrounded())
+	{
+		return;
+	}
+
+	if (!TryConsumeStamina(DodgeStaminaCost))
 	{
 		return;
 	}
@@ -1539,4 +1563,41 @@ void ASoulCharacter::HandleLandingDamage()
 		OnHitDamage(false);
 		SpawnDamageText(this, DamageAmount);
 	}
+}
+
+void ASoulCharacter::UpdateStamina(float DeltaSeconds)
+{
+	if (!StatComp)
+	{
+		return;
+	}
+
+	bool bIsUsingStamina = bIsAttacking || bIsDodging;
+
+	if (bIsSprinting && LocomotionState == ELocomotionState::Normal)
+	{
+		const UCharacterMovementComponent* MoveComp = GetCharacterMovement();
+		const bool bHasVelocity = MoveComp && !MoveComp->Velocity.IsNearlyZero();
+		if (bHasVelocity)
+		{
+			bIsUsingStamina = true;
+			const float DrainAmount = SprintStaminaCostPerSecond * DeltaSeconds;
+			const bool bHadEnough = StatComp->ConsumeStamina(DrainAmount);
+			if (!bHadEnough)
+			{
+				bIsSprinting = false;
+				UpdateMovementSpeed();
+			}
+		}
+	}
+
+	if (!bIsUsingStamina)
+	{
+		StatComp->RegenerateStamina(DeltaSeconds);
+	}
+}
+
+bool ASoulCharacter::TryConsumeStamina(float Amount)
+{
+	return StatComp && StatComp->ConsumeStamina(Amount);
 }

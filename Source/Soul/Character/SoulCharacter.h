@@ -133,6 +133,9 @@ protected:
 	void ResetGunShots();
 	void NotifyGunAmmoChanged();
 
+	void UpdateStamina(float DeltaSeconds);
+	bool TryConsumeStamina(float Amount);
+
 public:
 	FOnAutoFaceEndDelegate OnAutoFaceEnd;
 
@@ -321,4 +324,13 @@ protected:
 
 	UPROPERTY(VisibleInstanceOnly, Category = "Weapon|Gun")
 	int32 RemainingGunShots = 0;
+
+	UPROPERTY(EditAnywhere, Category = "Stamina")
+	float SprintStaminaCostPerSecond = 15.0f;
+
+	UPROPERTY(EditAnywhere, Category = "Stamina")
+	float SwordAttackStaminaCost = 20.0f;
+
+	UPROPERTY(EditAnywhere, Category = "Stamina")
+	float DodgeStaminaCost = 25.0f;
 };

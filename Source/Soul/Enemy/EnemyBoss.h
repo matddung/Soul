@@ -7,6 +7,7 @@
 class UAnimMontage;
 class UNiagaraSystem;
 class UParticleSystem;
+class UParticleSystemComponent;
 
 UCLASS()
 class SOUL_API AEnemyBoss : public AEnemyBase
@@ -30,29 +31,43 @@ protected:
     void ResetSkillState();
     void HandleSkillEffect();
     void HandleSkillHitCheck();
+    void StopSkillEffectParticle();
 
-    UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Combat|Skill")
+    UFUNCTION()
+    void OnSkillMontageEnded(UAnimMontage* Montage, bool bInterrupted);
+
+protected:
+    UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Skill")
     TObjectPtr<UAnimMontage> HalfHpSkillMontage = nullptr;
 
-    UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Combat|Skill")
+    UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Skill")
     TObjectPtr<UParticleSystem> SkillEffectParticle = nullptr;
 
-    UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Combat|Skill")
+    UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Skill")
+    FVector SkillEffectScale = FVector::OneVector;
+
+    UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Skill")
     TObjectPtr<UNiagaraSystem> SkillHitNiagara = nullptr;
 
-    UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Combat|Skill", meta = (ClampMin = "0.0"))
+    UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Skill", meta = (ClampMin = "0.0"))
     float SkillHitRadius = 300.f;
 
-    UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Combat|Skill", meta = (ClampMin = "0.0"))
+    UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Skill", meta = (ClampMin = "0.0"))
     float SkillDamage = 100.f;
 
-    UPROPERTY(VisibleInstanceOnly, BlueprintReadOnly, Category = "Combat|Skill")
+    UPROPERTY(VisibleInstanceOnly, BlueprintReadOnly, Category = "Skill")
     bool bHasTriggeredHalfHpSkill = false;
 
-    UPROPERTY(VisibleInstanceOnly, BlueprintReadOnly, Category = "Combat|Skill")
+    UPROPERTY(VisibleInstanceOnly, BlueprintReadOnly, Category = "Skill")
     bool bHalfHpSkillPending = false;
+
+    UPROPERTY(VisibleInstanceOnly, BlueprintReadOnly, Category = "Skill")
+    bool bIsUsingHalfHpSkill = false;
 
     bool bIsApplyingSkillDamage = false;
 
     FTimerHandle HalfHpSkillTimerHandle;
+
+    UPROPERTY(Transient)
+    TObjectPtr<UParticleSystemComponent> ActiveSkillEffectParticle = nullptr;
 };

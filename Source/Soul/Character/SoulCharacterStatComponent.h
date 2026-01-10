@@ -109,6 +109,15 @@ public:
 	UFUNCTION(BlueprintPure)
 	FCharacterDerivedStats GetPreviewDerivedStats(ECharacterStatType StatToIncrease) const;
 
+	UFUNCTION(BlueprintCallable)
+	bool ConsumeStamina(float Amount);
+
+	UFUNCTION(BlueprintCallable)
+	void RegenerateStamina(float DeltaSeconds);
+
+	UFUNCTION(BlueprintPure)
+	bool HasStamina(float Amount) const;
+
 	FORCEINLINE static FString GetSaveSlotName() { return UCharacterStatSaveData::GetSlotName(); }
 
 	UFUNCTION()
@@ -123,6 +132,8 @@ protected:
 
 	void SaveStatData() const;
 	void LoadStatData();
+
+	void StartStaminaRegenDelay();
 
 public:	
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Stats")
@@ -227,6 +238,8 @@ public:
 	static constexpr int32 MinStatValue = 1;
 	static constexpr int32 MaxStatValue = 99;
 	static constexpr int32 MaxWeaponEnhancementLevel = 10;
+
+	FTimerHandle StaminaRegenTimer;
 
 protected:
 	static constexpr int32 FixedInitialInvestCost = 100;
