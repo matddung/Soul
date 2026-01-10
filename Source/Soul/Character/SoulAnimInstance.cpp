@@ -248,6 +248,16 @@ void USoulAnimInstance::PlayDeathMontage()
 	Montage_Play(DeathMontage, 1);
 }
 
+void USoulAnimInstance::PlayKnockbackMontage()
+{
+	if (!KnockbackMontage)
+	{
+		return;
+	}
+
+	Montage_Play(KnockbackMontage, 1);
+}
+
 void USoulAnimInstance::AnimNotify_LadderTopMountEnd()
 {
 	OnLadderTopMountEnd.Broadcast();

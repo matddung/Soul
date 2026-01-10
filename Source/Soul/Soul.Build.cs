@@ -8,7 +8,21 @@ public class Soul : ModuleRules
 	{
 		PCHUsage = PCHUsageMode.UseExplicitOrSharedPCHs;
 	
-		PublicDependencyModuleNames.AddRange(new string[] { "Core", "CoreUObject", "Engine", "InputCore", "EnhancedInput", "AnimGraphRuntime", "UMG", "Slate", "SlateCore", "AIModule", "NavigationSystem" });
+		PublicDependencyModuleNames.AddRange(new string[]
+		{ 
+			"Core", 
+			"CoreUObject",
+			"Engine",
+			"InputCore",
+			"EnhancedInput",
+			"AnimGraphRuntime",
+			"UMG", 
+			"Slate",
+			"SlateCore", 
+			"AIModule", 
+			"NavigationSystem", 
+			"Niagara"
+		});
 
 		PrivateDependencyModuleNames.AddRange(new string[] {  });
 

@@ -7,6 +7,8 @@
 class AEnemyBase;
 
 DECLARE_MULTICAST_DELEGATE(FOnAttackHitCheckDelegate);
+DECLARE_MULTICAST_DELEGATE(FOnSkillEffectDelegate);
+DECLARE_MULTICAST_DELEGATE(FOnSkillHitCheckDelegate);
 
 UCLASS()
 class SOUL_API UEnemyAnimInstance : public UAnimInstance
@@ -28,8 +30,16 @@ protected:
     UFUNCTION()
     void AnimNotify_SpawnProjectile();
 
+    UFUNCTION()
+    void AnimNotify_SkillEffect();
+
+    UFUNCTION()
+    void AnimNotify_SkillHitCheck();
+
 public:
     FOnAttackHitCheckDelegate OnAttackHitCheck;
+    FOnSkillEffectDelegate OnSkillEffect;
+    FOnSkillHitCheckDelegate OnSkillHitCheck;
 
 protected:
     UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Pawn", meta = (AllowPrivateAccess = "true"))

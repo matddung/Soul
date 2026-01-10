@@ -106,7 +106,7 @@ protected:
 	UFUNCTION()
 	void HandleDead();
 
-	void OnHitDamage();
+	void OnHitDamage(bool bUseKnockback);
 
 	void SpawnDamageText(AActor* DamagedActor, float Damage);
 

@@ -132,3 +132,13 @@ void UEnemyAnimInstance::AnimNotify_SpawnProjectile()
 
     Enemy->SpawnProjectileAtTarget(TargetActor);
 }
+
+void UEnemyAnimInstance::AnimNotify_SkillEffect()
+{
+    OnSkillEffect.Broadcast();
+}
+
+void UEnemyAnimInstance::AnimNotify_SkillHitCheck()
+{
+    OnSkillHitCheck.Broadcast();
+}

@@ -9,6 +9,7 @@
 #include "../Interact/SoulBoxActor.h"
 #include "SoulWeaponComponent.h"
 #include "SoulWeaponData.h"
+#include "../Enemy/EnemyBoss.h"
 
 #include "Camera/CameraComponent.h"
 #include "Components/CapsuleComponent.h"
@@ -207,12 +208,18 @@ float ASoulCharacter::TakeDamage(float DamageAmount, FDamageEvent const& DamageE
 	const float FinalDamage = (ActualDamage > 0) ? ActualDamage : DamageAmount;
 
 	float AppliedDamage = 0;
+	bool bUseKnockback = false;
+
+	if (const AEnemyBoss* Boss = Cast<AEnemyBoss>(DamageCauser))
+	{
+		bUseKnockback = Boss->IsApplyingSkillDamage();
+	}
 
 	if (StatComp)
 	{
 		if (FinalDamage > 0 && StatComp->ApplyDamage(FinalDamage))
 		{
-			OnHitDamage();
+			OnHitDamage(bUseKnockback);
 			SpawnDamageText(this, FinalDamage);
 			AppliedDamage = FinalDamage;
 		}
@@ -905,7 +912,7 @@ void ASoulCharacter::HandleDead()
 	}
 }
 
-void ASoulCharacter::OnHitDamage()
+void ASoulCharacter::OnHitDamage(bool bUseKnockback)
 {
 	if (bIsDead)
 	{
@@ -921,7 +928,14 @@ void ASoulCharacter::OnHitDamage()
 
 	if (AnimInstance)
 	{
-		AnimInstance->PlayHitReactMontage();
+		if (bUseKnockback)
+		{
+			AnimInstance->PlayKnockbackMontage();
+		}
+		else
+		{
+			AnimInstance->PlayHitReactMontage();
+		}
 	}
 
 	bIsHit = true;
@@ -1522,7 +1536,7 @@ void ASoulCharacter::HandleLandingDamage()
 
 	if (StatComp->ApplyDamage(DamageAmount))
 	{
-		OnHitDamage();
+		OnHitDamage(false);
 		SpawnDamageText(this, DamageAmount);
 	}
 }
