@@ -43,7 +43,16 @@ void UMainMenuWidget::OnContinueClicked()
 		return;
 	}
 
-	UGameplayStatics::OpenLevel(this, MainGameLevelName);
+	if (UWorld* World = GetWorld())
+	{
+		RemoveFromParent();
+		if (APlayerController* PC = GetOwningPlayer())
+		{
+			PC->SetInputMode(FInputModeGameOnly());
+			PC->bShowMouseCursor = false;
+		}
+		UGameplayStatics::OpenLevel(World, MainGameLevelName);
+	}
 }
 
 void UMainMenuWidget::OnNewGameClicked()
@@ -56,7 +65,16 @@ void UMainMenuWidget::OnNewGameClicked()
 	UGameplayStatics::DeleteGameInSlot(UGameProgressSaveData::GetSlotName(), 0);
 	UGameplayStatics::DeleteGameInSlot(UCharacterStatSaveData::GetSlotName(), 0);
 	UGameplayStatics::DeleteGameInSlot(UInventorySaveData::GetSlotName(), 0);
-	UGameplayStatics::OpenLevel(this, MainGameLevelName);
+	if (UWorld* World = GetWorld())
+	{
+		RemoveFromParent();
+		if (APlayerController* PC = GetOwningPlayer())
+		{
+			PC->SetInputMode(FInputModeGameOnly());
+			PC->bShowMouseCursor = false;
+		}
+		UGameplayStatics::OpenLevel(World, MainGameLevelName);
+	}
 }
 
 void UMainMenuWidget::OnQuitClicked()

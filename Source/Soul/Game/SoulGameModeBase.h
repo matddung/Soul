@@ -9,5 +9,9 @@ class SOUL_API ASoulGameModeBase : public AGameModeBase
 {
 	GENERATED_BODY()
 	
+public:
 	ASoulGameModeBase();
+
+protected:
+	virtual void BeginPlay() override;
 };

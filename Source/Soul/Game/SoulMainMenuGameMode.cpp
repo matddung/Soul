@@ -2,7 +2,6 @@
 #include "../UI/MainMenuWidget.h"
 
 #include "Blueprint/UserWidget.h"
-#include "Kismet/GameplayStatics.h"
 
 ASoulMainMenuGameMode::ASoulMainMenuGameMode()
 {
@@ -14,18 +13,15 @@ void ASoulMainMenuGameMode::BeginPlay()
 {
 	Super::BeginPlay();
 
+	UE_LOG(LogTemp, Warning, TEXT("ASoulMainMenuGameMode BeginPlay"));
+
 	if (!MainMenuWidgetClass)
 	{
 		return;
 	}
 
-	APlayerController* PC = UGameplayStatics::GetPlayerController(this, 0);
-	if (!PC)
-	{
-		return;
-	}
+	MainMenuWidget = CreateWidget<UMainMenuWidget>(GetWorld(), MainMenuWidgetClass);
 
-	MainMenuWidget = CreateWidget<UMainMenuWidget>(PC, MainMenuWidgetClass);
 	if (MainMenuWidget)
 	{
 		MainMenuWidget->AddToViewport();

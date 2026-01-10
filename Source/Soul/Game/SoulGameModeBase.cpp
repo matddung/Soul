@@ -2,8 +2,7 @@
 
 ASoulGameModeBase::ASoulGameModeBase()
 {
-	static ConstructorHelpers::FClassFinder<APlayerController> PlayerControllerFinder(
-		TEXT("/Game/Blueprints/BP_SoulPlayerController"));
+	static ConstructorHelpers::FClassFinder<APlayerController> PlayerControllerFinder(TEXT("/Game/Blueprints/BP_SoulPlayerController"));
 	if (PlayerControllerFinder.Succeeded())
 	{
 		PlayerControllerClass = PlayerControllerFinder.Class;
@@ -14,4 +13,11 @@ ASoulGameModeBase::ASoulGameModeBase()
 	{
 		DefaultPawnClass = Player.Class;
 	}
+}
+
+void ASoulGameModeBase::BeginPlay()
+{
+	Super::BeginPlay();
+
+	UE_LOG(LogTemp, Warning, TEXT("ASoulGameModeBase BeginPlay"));
 }
