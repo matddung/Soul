@@ -285,6 +285,9 @@ void USoulCharacterStatComponent::SaveStatData() const
 	SaveData->SavedGunDamageBase = GunDamageBase;
 	SaveData->SwordEnhancementLevel = SwordEnhancementLevel;
 	SaveData->GunEnhancementLevel = GunEnhancementLevel;
+	SaveData->SavedHP = HP;
+	SaveData->SavedStamina = Stamina;
+	SaveData->bHasSavedVitals = true;
 
 	UGameplayStatics::SaveGameToSlot(SaveData, SlotName, 0);
 }
@@ -292,10 +295,12 @@ void USoulCharacterStatComponent::SaveStatData() const
 void USoulCharacterStatComponent::LoadStatData()
 {
 	const FString SlotName = UCharacterStatSaveData::GetSlotName();
+	const UCharacterStatSaveData* LoadedData = nullptr;
 
 	if (UGameplayStatics::DoesSaveGameExist(SlotName, 0))
 	{
-		if (const UCharacterStatSaveData* LoadedData = Cast<UCharacterStatSaveData>(UGameplayStatics::LoadGameFromSlot(SlotName, 0)))
+		LoadedData = Cast<UCharacterStatSaveData>(UGameplayStatics::LoadGameFromSlot(SlotName, 0));
+		if (LoadedData)
 		{
 			STR = FMath::Clamp(LoadedData->STR, MinStatValue, MaxStatValue);
 			DEX = FMath::Clamp(LoadedData->DEX, MinStatValue, MaxStatValue);
@@ -310,7 +315,20 @@ void USoulCharacterStatComponent::LoadStatData()
 		}
 	}
 
-	RecalculateDerivedStats(true);
+	RecalculateDerivedStats(false);
+
+	if (LoadedData && LoadedData->bHasSavedVitals)
+	{
+		HP = FMath::Clamp(LoadedData->SavedHP, 0.0f, MaxHP);
+		Stamina = FMath::Clamp(LoadedData->SavedStamina, 0.0f, MaxStamina);
+	}
+	else
+	{
+		HP = MaxHP;
+		Stamina = MaxStamina;
+	}
+
+	OnStatChanged.Broadcast();
 }
 
 bool USoulCharacterStatComponent::RestoreHP(float Amount)

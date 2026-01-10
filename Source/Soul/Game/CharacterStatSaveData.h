@@ -43,5 +43,23 @@ public:
     UPROPERTY(BlueprintReadWrite)
     bool bHasGunFromBox = false;
 
+    UPROPERTY(BlueprintReadWrite)
+    float SavedHP = 0.0f;
+
+    UPROPERTY(BlueprintReadWrite)
+    float SavedStamina = 0.0f;
+
+    UPROPERTY(BlueprintReadWrite)
+    bool bHasSavedVitals = false;
+
+    UPROPERTY(BlueprintReadWrite)
+    int32 SavedRemainingGunShots = 0;
+
+    UPROPERTY(BlueprintReadWrite)
+    int32 SavedMaxGunShots = 0;
+
+    UPROPERTY(BlueprintReadWrite)
+    bool bHasSavedAmmo = false;
+
     FORCEINLINE static FString GetSlotName() { return TEXT("CharacterStatSaveData"); }
 };

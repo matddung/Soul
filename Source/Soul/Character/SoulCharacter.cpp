@@ -1450,7 +1450,9 @@ void ASoulCharacter::RestoreWeaponOwnershipFromSave()
 		return;
 	}
 
-	if (const UCharacterStatSaveData* LoadedData = Cast<UCharacterStatSaveData>(UGameplayStatics::LoadGameFromSlot(SlotName, 0)))
+	const UCharacterStatSaveData* LoadedData = Cast<UCharacterStatSaveData>(UGameplayStatics::LoadGameFromSlot(SlotName, 0));
+
+	if (LoadedData)
 	{
 		if (LoadedData->bHasGunFromBox)
 		{
@@ -1470,6 +1472,17 @@ void ASoulCharacter::RestoreWeaponOwnershipFromSave()
 				}
 			}
 		}
+	}
+
+	if (LoadedData->bHasSavedAmmo)
+	{
+		if (LoadedData->SavedMaxGunShots > 0)
+		{
+			MaxGunShots = LoadedData->SavedMaxGunShots;
+		}
+
+		RemainingGunShots = FMath::Clamp(LoadedData->SavedRemainingGunShots, 0, MaxGunShots);
+		NotifyGunAmmoChanged();
 	}
 }
 
@@ -1508,6 +1521,9 @@ void ASoulCharacter::SaveWeaponOwnership(bool bHasGunOwned)
 	}
 
 	SaveData->bHasGunFromBox = bHasGunOwned;
+	SaveData->SavedRemainingGunShots = RemainingGunShots;
+	SaveData->SavedMaxGunShots = MaxGunShots;
+	SaveData->bHasSavedAmmo = true;
 
 	UGameplayStatics::SaveGameToSlot(SaveData, SlotName, 0);
 }
