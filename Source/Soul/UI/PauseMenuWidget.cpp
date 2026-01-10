@@ -50,6 +50,11 @@ void UPauseMenuWidget::NativeOnInitialized()
 		Btn_QuitNo->OnClicked.AddDynamic(this, &UPauseMenuWidget::OnQuitNoClicked);
 	}
 
+	if (Btn_Save)
+	{
+		Btn_Save->OnClicked.AddDynamic(this, &UPauseMenuWidget::OnSaveClicked);
+	}
+
 	if (Slider_MasterVolume)
 	{
 		Slider_MasterVolume->OnValueChanged.AddDynamic(this, &UPauseMenuWidget::OnMasterVolumeChanged);
@@ -162,6 +167,14 @@ void UPauseMenuWidget::OnQuitYesClicked()
 	if (APlayerController* PC = GetOwningPlayer())
 	{
 		UKismetSystemLibrary::QuitGame(this, PC, EQuitPreference::Quit, false);
+	}
+}
+
+void UPauseMenuWidget::OnSaveClicked()
+{
+	if (ASoulPlayerController* SoulPC = Cast<ASoulPlayerController>(GetOwningPlayer()))
+	{
+		SoulPC->SaveCurrentGame();
 	}
 }
 

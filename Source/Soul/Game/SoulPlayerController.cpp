@@ -9,6 +9,8 @@
 #include "../UI/InventoryWidget.h"
 #include "../Character/SoulInventoryComponent.h"
 #include "../UI/HUDWidget.h"
+#include "GameProgressSaveData.h"
+#include "../Character/SoulWeaponComponent.h"
 
 #include "Blueprint/UserWidget.h"
 #include "EnhancedInputComponent.h"
@@ -73,6 +75,7 @@ void ASoulPlayerController::OnPossess(APawn* InPawn)
     BindInventoryComponent();
     RefreshStatusWidget();
     RefreshHUD();
+    LoadGameProgress();
 }
 
 void ASoulPlayerController::OnUnPossess()
@@ -1058,5 +1061,76 @@ void ASoulPlayerController::HandleUseQuickSlotItem(const FInputActionValue& Valu
     else
     {
         CachedInventoryComponent->UseActiveQuickSlotItem();
+    }
+}
+
+void ASoulPlayerController::SaveCurrentGame()
+{
+    ASoulCharacter* SoulCharacter = GetSoulCharacter();
+    if (!SoulCharacter)
+    {
+        return;
+    }
+
+    if (CachedStatComponent.IsValid())
+    {
+        CachedStatComponent->SaveStatData();
+    }
+
+    if (CachedInventoryComponent.IsValid())
+    {
+        CachedInventoryComponent->SaveInventory();
+    }
+
+    if (!GameProgressSaveData)
+    {
+        GameProgressSaveData = Cast<UGameProgressSaveData>(UGameplayStatics::CreateSaveGameObject(UGameProgressSaveData::StaticClass()));
+    }
+
+    if (GameProgressSaveData)
+    {
+        GameProgressSaveData->LevelName = UGameplayStatics::GetCurrentLevelName(this, true);
+        GameProgressSaveData->PlayerLocation = SoulCharacter->GetActorLocation();
+        GameProgressSaveData->PlayerRotation = SoulCharacter->GetActorRotation();
+        UGameplayStatics::SaveGameToSlot(GameProgressSaveData, UGameProgressSaveData::GetSlotName(), 0);
+    }
+
+    if (SoulCharacter->WeaponComponent)
+    {
+        const bool bHasGunOwned = SoulCharacter->WeaponComponent->HasWeapon(EWeaponType::Gun);
+        SoulCharacter->SaveWeaponOwnership(bHasGunOwned);
+    }
+}
+
+void ASoulPlayerController::LoadGameProgress()
+{
+    const FString SlotName = UGameProgressSaveData::GetSlotName();
+
+    if (!UGameplayStatics::DoesSaveGameExist(SlotName, 0))
+    {
+        return;
+    }
+
+    GameProgressSaveData = Cast<UGameProgressSaveData>(UGameplayStatics::LoadGameFromSlot(SlotName, 0));
+    if (!GameProgressSaveData)
+    {
+        return;
+    }
+
+    const FString CurrentLevelName = UGameplayStatics::GetCurrentLevelName(this, true);
+    if (!GameProgressSaveData->LevelName.IsEmpty() && GameProgressSaveData->LevelName != CurrentLevelName)
+    {
+        UGameplayStatics::OpenLevel(this, FName(*GameProgressSaveData->LevelName));
+        return;
+    }
+
+    if (APawn* ControlledPawn = GetPawn())
+    {
+        ControlledPawn->SetActorLocationAndRotation(
+            GameProgressSaveData->PlayerLocation,
+            GameProgressSaveData->PlayerRotation,
+            false,
+            nullptr,
+            ETeleportType::TeleportPhysics);
     }
 }

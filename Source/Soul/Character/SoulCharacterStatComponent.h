@@ -123,6 +123,8 @@ public:
 	UFUNCTION()
 	bool RestoreHP(float Amount);
 
+	void SaveStatData() const;
+
 protected:
 	virtual void BeginPlay() override;
 
@@ -130,7 +132,6 @@ protected:
 	void AddToStat(ECharacterStatType StatType, int32 Delta);
 	FCharacterDerivedStats GetDerivedStatsInternal(int32 InSTR, int32 InDEX, int32 InVIT, int32 InEND) const;
 
-	void SaveStatData() const;
 	void LoadStatData();
 
 	void StartStaminaRegenDelay();

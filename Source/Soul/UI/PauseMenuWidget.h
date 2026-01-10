@@ -67,6 +67,9 @@ protected:
 	void OnQuitNoClicked();
 
 	UFUNCTION()
+	void OnSaveClicked();
+
+	UFUNCTION()
 	void OnMasterVolumeChanged(float Value);
 
 	UFUNCTION()
@@ -106,6 +109,9 @@ protected:
 
 	UPROPERTY(meta = (BindWidget))
 	UButton* Btn_QuitNo;
+
+	UPROPERTY(meta = (BindWidget))
+	UButton* Btn_Save;
 
 	UPROPERTY(meta = (BindWidget))
 	USlider* Slider_MasterVolume;

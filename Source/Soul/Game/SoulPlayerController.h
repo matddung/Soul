@@ -23,6 +23,7 @@ class USoulCharacterStatComponent;
 class UInventoryWidget;
 class USoulInventoryComponent;
 class UHUDWidget;
+class UGameProgressSaveData;
 
 USTRUCT()
 struct FPlayerActionKeyMapping
@@ -63,6 +64,8 @@ public:
     void RequestClosePauseMenu();
 
     void OnGunAmmoChanged(int32 CurrentAmmo, int32 MaxAmmo);
+
+    void SaveCurrentGame();
 
 protected:
     virtual void BeginPlay() override;
@@ -131,6 +134,8 @@ protected:
     void RefreshHUD();
 
     void HandleUseQuickSlotItem(const FInputActionValue& Value);
+
+    void LoadGameProgress();
 
 protected:
     UPROPERTY(EditDefaultsOnly, Category = "UI")
@@ -246,6 +251,9 @@ protected:
 
     UPROPERTY(Transient)
     TObjectPtr<UHUDWidget> HUDWidget;
+
+    UPROPERTY()
+    TObjectPtr<UGameProgressSaveData> GameProgressSaveData;
 
 private:
     bool bMappingContextAdded = false;
