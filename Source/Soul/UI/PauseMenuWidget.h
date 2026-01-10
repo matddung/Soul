@@ -23,6 +23,8 @@ enum class EPausePage : uint8
 	QuitConfirm
 };
 
+DECLARE_DYNAMIC_MULTICAST_DELEGATE(FOnPauseMenuBackRequested);
+
 UCLASS()
 class SOUL_API UPauseMenuWidget : public UUserWidget
 {
@@ -42,6 +44,9 @@ public:
 	EPausePage GetCurrentPage() const;
 
 	void SetMasterAudioConfig(USoundMix* InSoundMix, USoundClass* InSoundClass, float InVolume);
+
+	UPROPERTY(BlueprintAssignable, Category = "Pause")
+	FOnPauseMenuBackRequested OnBackFromSettingsRequested;
 
 protected:
 	virtual void NativeOnInitialized() override;
