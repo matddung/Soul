@@ -2,6 +2,7 @@
 #include "../UI/EnemyHPBarWidget.h"
 #include "../UI/FloatingDamageActor.h"
 #include "EnemyAnimInstance.h"
+#include "../Character/SoulCharacter.h"
 
 #include "Components/CapsuleComponent.h"
 #include "GameFramework/CharacterMovementComponent.h"
@@ -340,6 +341,11 @@ void AEnemyBase::AttackHitCheck()
 
     AActor* Target = CurrentTarget.Get();
     if (!Target)
+    {
+        return;
+    }
+
+    if (!Cast<ASoulCharacter>(Target))
     {
         return;
     }

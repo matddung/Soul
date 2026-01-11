@@ -19,5 +19,8 @@ public:
     UPROPERTY(BlueprintReadWrite)
     FRotator PlayerRotation = FRotator::ZeroRotator;
 
+    UPROPERTY(BlueprintReadWrite)
+    float ElapsedPlayTimeSeconds = 0.0f;
+
     FORCEINLINE static FString GetSlotName() { return TEXT("GameProgressSaveData"); }
 };

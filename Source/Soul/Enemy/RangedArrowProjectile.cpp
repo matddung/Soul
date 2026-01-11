@@ -1,4 +1,5 @@
 #include "RangedArrowProjectile.h"
+#include "../Character/SoulCharacter.h"
 
 #include "Components/SphereComponent.h"
 #include "GameFramework/ProjectileMovementComponent.h"
@@ -64,6 +65,11 @@ void ARangedArrowProjectile::OnHit(UPrimitiveComponent* HitComp, AActor* OtherAc
     UPrimitiveComponent* OtherComp, FVector NormalImpulse, const FHitResult& Hit)
 {
     if (!IsValid(OtherActor) || OtherActor == GetOwner())
+    {
+        return;
+    }
+
+    if (!Cast<ASoulCharacter>(OtherActor))
     {
         return;
     }

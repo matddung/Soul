@@ -1,6 +1,7 @@
 #include "EnemyBoss.h"
 #include "EnemyAnimInstance.h"
 #include "../Character/SoulAnimInstance.h"
+#include "../Game/SoulPlayerController.h"
 
 #include "GameFramework/CharacterMovementComponent.h"
 #include "Kismet/GameplayStatics.h"
@@ -80,6 +81,11 @@ void AEnemyBoss::HandleDeath()
     bHalfHpSkillPending = false;
     bIsUsingHalfHpSkill = false;
     StopSkillEffectParticle();
+
+    if (ASoulPlayerController* SoulPC = Cast<ASoulPlayerController>(UGameplayStatics::GetPlayerController(this, 0)))
+    {
+        SoulPC->HandleBossDefeated();
+    }
 }
 
 void AEnemyBoss::TryTriggerHalfHpSkill()

@@ -24,6 +24,8 @@ class UInventoryWidget;
 class USoulInventoryComponent;
 class UHUDWidget;
 class UGameProgressSaveData;
+class UGameOverWidget;
+class UGameClearWidget;
 
 USTRUCT()
 struct FPlayerActionKeyMapping
@@ -66,6 +68,7 @@ public:
     void OnGunAmmoChanged(int32 CurrentAmmo, int32 MaxAmmo);
 
     void SaveCurrentGame();
+    void HandleBossDefeated();
 
 protected:
     virtual void BeginPlay() override;
@@ -136,6 +139,26 @@ protected:
     void HandleUseQuickSlotItem(const FInputActionValue& Value);
 
     void LoadGameProgress();
+
+    UFUNCTION()
+    void OnCharacterDead();
+
+    void ShowGameOverWidget();
+    void ShowGameClearWidget();
+
+    UFUNCTION()
+    void HandleGameOverRetry();
+
+    UFUNCTION()
+    void HandleGameOverMain();
+
+    UFUNCTION()
+    void HandleGameClearReturn();
+
+    void EnableClearReturn();
+    void InitializePlayTimer(float BaseElapsedSeconds);
+    float GetElapsedPlayTimeSeconds() const;
+    void StartNewGameSaveIfNeeded();
 
 protected:
     UPROPERTY(EditDefaultsOnly, Category = "UI")
@@ -255,11 +278,39 @@ protected:
     UPROPERTY()
     TObjectPtr<UGameProgressSaveData> GameProgressSaveData;
 
+    UPROPERTY(EditDefaultsOnly, Category = "UI")
+    TSubclassOf<UGameOverWidget> GameOverWidgetClass;
+
+    UPROPERTY(Transient)
+    TObjectPtr<UGameOverWidget> GameOverWidget;
+
+    UPROPERTY(EditDefaultsOnly, Category = "UI")
+    TSubclassOf<UGameClearWidget> GameClearWidgetClass;
+
+    UPROPERTY(Transient)
+    TObjectPtr<UGameClearWidget> GameClearWidget;
+
+    UPROPERTY(EditDefaultsOnly, Category = "UI")
+    FName MenuLevelName = FName("MenuMap");
+
+    UPROPERTY(EditDefaultsOnly, Category = "UI")
+    FName DefaultGameLevelName = FName("MainMap");
+
 private:
     bool bMappingContextAdded = false;
     bool bPauseMenuOpen = false;
     bool bStatusWidgetOpen = false;
     bool bInventoryOpen = false;
+
+    bool bGameOverOpen = false;
+    bool bGameClearOpen = false;
+    bool bCanReturnFromClear = false;
+    bool bHasSessionPlayTimer = false;
+
+    float BaseElapsedPlayTimeSeconds = 0.0f;
+    float SessionStartTimeSeconds = 0.0f;
+
+    FTimerHandle ClearReturnTimerHandle;
 
     UPROPERTY()
     TObjectPtr<UPauseMenuWidget> PauseMenuInstance = nullptr;

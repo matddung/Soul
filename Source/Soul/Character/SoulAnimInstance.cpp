@@ -244,6 +244,7 @@ void USoulAnimInstance::PlayDeathMontage()
 		return;
 	}
 
+	DeathMontage->bEnableAutoBlendOut = false;
 	Montage_Stop(0.0f);
 	Montage_Play(DeathMontage, 1);
 }

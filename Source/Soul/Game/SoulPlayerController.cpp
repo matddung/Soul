@@ -11,6 +11,8 @@
 #include "../UI/HUDWidget.h"
 #include "GameProgressSaveData.h"
 #include "../Character/SoulWeaponComponent.h"
+#include "../UI/GameOverWidget.h"
+#include "../UI/GameClearWidget.h"
 
 #include "Blueprint/UserWidget.h"
 #include "EnhancedInputComponent.h"
@@ -76,6 +78,7 @@ void ASoulPlayerController::OnPossess(APawn* InPawn)
     RefreshStatusWidget();
     RefreshHUD();
     LoadGameProgress();
+    StartNewGameSaveIfNeeded();
 }
 
 void ASoulPlayerController::OnUnPossess()
@@ -597,6 +600,11 @@ void ASoulPlayerController::RequestClosePauseMenu()
 
 void ASoulPlayerController::TogglePauseMenu()
 {
+    if (bGameOverOpen || bGameClearOpen)
+    {
+        return;
+    }
+
     if (bPauseMenuOpen)
     {
         ClosePauseMenu();
@@ -611,6 +619,11 @@ void ASoulPlayerController::TogglePauseMenu()
 
 void ASoulPlayerController::HandleToggleStatus(const FInputActionValue& Value)
 {
+    if (bGameOverOpen || bGameClearOpen)
+    {
+        return;
+    }
+
     ToggleStatusWidget();
 }
 
@@ -828,6 +841,7 @@ void ASoulPlayerController::BindStatComponent()
     if (CachedStatComponent.IsValid())
     {
         CachedStatComponent->OnStatChanged.RemoveDynamic(this, &ASoulPlayerController::OnCharacterStatChanged);
+        CachedStatComponent->OnDead.RemoveDynamic(this, &ASoulPlayerController::OnCharacterDead);
     }
 
     if (ASoulCharacter* SoulCharacter = GetSoulCharacter())
@@ -842,6 +856,7 @@ void ASoulPlayerController::BindStatComponent()
     if (CachedStatComponent.IsValid())
     {
         CachedStatComponent->OnStatChanged.AddDynamic(this, &ASoulPlayerController::OnCharacterStatChanged);
+        CachedStatComponent->OnDead.AddDynamic(this, &ASoulPlayerController::OnCharacterDead);
     }
 }
 
@@ -874,6 +889,11 @@ void ASoulPlayerController::OnRequestAdjust(ECharacterStatType StatType, int32 D
 
 void ASoulPlayerController::HandleToggleInventory(const FInputActionValue& Value)
 {
+    if (bGameOverOpen || bGameClearOpen)
+    {
+        return;
+    }
+
     ToggleInventory();
 }
 
@@ -1072,6 +1092,11 @@ void ASoulPlayerController::SaveCurrentGame()
         return;
     }
 
+    if (!bHasSessionPlayTimer)
+    {
+        InitializePlayTimer(BaseElapsedPlayTimeSeconds);
+    }
+
     if (CachedStatComponent.IsValid())
     {
         CachedStatComponent->SaveStatData();
@@ -1092,6 +1117,7 @@ void ASoulPlayerController::SaveCurrentGame()
         GameProgressSaveData->LevelName = UGameplayStatics::GetCurrentLevelName(this, true);
         GameProgressSaveData->PlayerLocation = SoulCharacter->GetActorLocation();
         GameProgressSaveData->PlayerRotation = SoulCharacter->GetActorRotation();
+        GameProgressSaveData->ElapsedPlayTimeSeconds = GetElapsedPlayTimeSeconds();
         UGameplayStatics::SaveGameToSlot(GameProgressSaveData, UGameProgressSaveData::GetSlotName(), 0);
     }
 
@@ -1124,6 +1150,8 @@ void ASoulPlayerController::LoadGameProgress()
         return;
     }
 
+    InitializePlayTimer(GameProgressSaveData->ElapsedPlayTimeSeconds);
+
     if (APawn* ControlledPawn = GetPawn())
     {
         ControlledPawn->SetActorLocationAndRotation(
@@ -1133,4 +1161,187 @@ void ASoulPlayerController::LoadGameProgress()
             nullptr,
             ETeleportType::TeleportPhysics);
     }
+}
+
+void ASoulPlayerController::OnCharacterDead()
+{
+    if (bGameOverOpen || bGameClearOpen)
+    {
+        return;
+    }
+
+    ShowGameOverWidget();
+}
+
+void ASoulPlayerController::HandleBossDefeated()
+{
+    if (bGameClearOpen || bGameOverOpen)
+    {
+        return;
+    }
+
+    ShowGameClearWidget();
+}
+
+void ASoulPlayerController::ShowGameOverWidget()
+{
+    ClosePauseMenu();
+    CloseInventory();
+    CloseStatusWidget();
+
+    if (!GameOverWidget && GameOverWidgetClass)
+    {
+        GameOverWidget = CreateWidget<UGameOverWidget>(this, GameOverWidgetClass);
+    }
+
+    if (!GameOverWidget)
+    {
+        return;
+    }
+
+    GameOverWidget->OnRetryRequested.RemoveDynamic(this, &ASoulPlayerController::HandleGameOverRetry);
+    GameOverWidget->OnMainRequested.RemoveDynamic(this, &ASoulPlayerController::HandleGameOverMain);
+    GameOverWidget->OnRetryRequested.AddDynamic(this, &ASoulPlayerController::HandleGameOverRetry);
+    GameOverWidget->OnMainRequested.AddDynamic(this, &ASoulPlayerController::HandleGameOverMain);
+
+    if (!GameOverWidget->IsInViewport())
+    {
+        GameOverWidget->AddToViewport(200);
+    }
+
+    bGameOverOpen = true;
+    bShowMouseCursor = true;
+    SetIgnoreMoveInput(true);
+    SetIgnoreLookInput(true);
+
+    FInputModeUIOnly InputMode;
+    InputMode.SetLockMouseToViewportBehavior(EMouseLockMode::DoNotLock);
+    InputMode.SetWidgetToFocus(GameOverWidget->TakeWidget());
+    SetInputMode(InputMode);
+}
+
+void ASoulPlayerController::ShowGameClearWidget()
+{
+    ClosePauseMenu();
+    CloseInventory();
+    CloseStatusWidget();
+
+    if (!GameClearWidget && GameClearWidgetClass)
+    {
+        GameClearWidget = CreateWidget<UGameClearWidget>(this, GameClearWidgetClass);
+    }
+
+    if (!GameClearWidget)
+    {
+        return;
+    }
+
+    GameClearWidget->OnReturnRequested.RemoveDynamic(this, &ASoulPlayerController::HandleGameClearReturn);
+    GameClearWidget->OnReturnRequested.AddDynamic(this, &ASoulPlayerController::HandleGameClearReturn);
+
+    if (!GameClearWidget->IsInViewport())
+    {
+        GameClearWidget->AddToViewport(200);
+    }
+
+    const int32 TotalSeconds = FMath::Max(0, FMath::RoundToInt(GetElapsedPlayTimeSeconds()));
+    const int32 Minutes = TotalSeconds / 60;
+    const int32 Seconds = TotalSeconds % 60;
+    const FText ClearTimeText = FText::FromString(FString::Printf(TEXT("Clear Time: %02d:%02d"), Minutes, Seconds));
+    GameClearWidget->SetClearTimeText(ClearTimeText);
+
+    bGameClearOpen = true;
+    bCanReturnFromClear = false;
+    bShowMouseCursor = true;
+    SetIgnoreMoveInput(true);
+    SetIgnoreLookInput(true);
+
+    FInputModeUIOnly InputMode;
+    InputMode.SetLockMouseToViewportBehavior(EMouseLockMode::DoNotLock);
+    InputMode.SetWidgetToFocus(GameClearWidget->TakeWidget());
+    SetInputMode(InputMode);
+
+    GetWorldTimerManager().ClearTimer(ClearReturnTimerHandle);
+    GetWorldTimerManager().SetTimer(ClearReturnTimerHandle, this, &ASoulPlayerController::EnableClearReturn, 2.0f, false);
+}
+
+void ASoulPlayerController::HandleGameOverRetry()
+{
+    const FString SlotName = UGameProgressSaveData::GetSlotName();
+    if (UGameplayStatics::DoesSaveGameExist(SlotName, 0))
+    {
+        if (!GameProgressSaveData)
+        {
+            GameProgressSaveData = Cast<UGameProgressSaveData>(UGameplayStatics::LoadGameFromSlot(SlotName, 0));
+        }
+
+        if (GameProgressSaveData && !GameProgressSaveData->LevelName.IsEmpty())
+        {
+            UGameplayStatics::OpenLevel(this, FName(*GameProgressSaveData->LevelName));
+            return;
+        }
+    }
+
+    if (!DefaultGameLevelName.IsNone())
+    {
+        UGameplayStatics::OpenLevel(this, DefaultGameLevelName);
+    }
+}
+
+void ASoulPlayerController::HandleGameOverMain()
+{
+    if (!MenuLevelName.IsNone())
+    {
+        UGameplayStatics::OpenLevel(this, MenuLevelName);
+    }
+}
+
+void ASoulPlayerController::HandleGameClearReturn()
+{
+    if (!bCanReturnFromClear)
+    {
+        return;
+    }
+
+    if (!MenuLevelName.IsNone())
+    {
+        UGameplayStatics::OpenLevel(this, MenuLevelName);
+    }
+}
+
+void ASoulPlayerController::EnableClearReturn()
+{
+    bCanReturnFromClear = true;
+}
+
+void ASoulPlayerController::InitializePlayTimer(float BaseElapsedSeconds)
+{
+    BaseElapsedPlayTimeSeconds = FMath::Max(0.0f, BaseElapsedSeconds);
+    if (UWorld* World = GetWorld())
+    {
+        SessionStartTimeSeconds = World->GetTimeSeconds();
+        bHasSessionPlayTimer = true;
+    }
+}
+
+float ASoulPlayerController::GetElapsedPlayTimeSeconds() const
+{
+    if (!bHasSessionPlayTimer || !GetWorld())
+    {
+        return BaseElapsedPlayTimeSeconds;
+    }
+
+    return BaseElapsedPlayTimeSeconds + (GetWorld()->GetTimeSeconds() - SessionStartTimeSeconds);
+}
+
+void ASoulPlayerController::StartNewGameSaveIfNeeded()
+{
+    const FString SlotName = UGameProgressSaveData::GetSlotName();
+    if (UGameplayStatics::DoesSaveGameExist(SlotName, 0))
+    {
+        return;
+    }
+
+    InitializePlayTimer(0.0f);
+    SaveCurrentGame();
 }
