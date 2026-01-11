@@ -313,6 +313,8 @@ private:
     float SessionStartTimeSeconds = 0.0f;
 
     FTimerHandle ClearReturnTimerHandle;
+    FTimerHandle GameOverDelayTimerHandle;
+    FTimerHandle GameClearDelayTimerHandle;
 
     UPROPERTY()
     TObjectPtr<UPauseMenuWidget> PauseMenuInstance = nullptr;

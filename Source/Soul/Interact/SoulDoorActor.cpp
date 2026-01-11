@@ -1,6 +1,7 @@
 #include "SoulDoorActor.h"
 #include "../Character/SoulCharacter.h"
 #include "../Game/GameProgressSaveData.h"
+#include "../Game/SoulPlayerController.h"
 
 #include "Components/BoxComponent.h"
 #include "Kismet/GameplayStatics.h"
@@ -171,6 +172,11 @@ void ASoulDoorActor::OnPortalBeginOverlap(UPrimitiveComponent*, AActor* OtherAct
 	if (TargetLevelName.IsNone())
 	{
 		return;
+	}
+
+	if (ASoulPlayerController* PlayerController = Cast<ASoulPlayerController>(Player->GetController()))
+	{
+		PlayerController->RequestManualSave();
 	}
 
 	const FString SlotName = UGameProgressSaveData::GetSlotName();

@@ -1121,8 +1121,6 @@ void ASoulPlayerController::SaveCurrentGame()
     if (GameProgressSaveData)
     {
         GameProgressSaveData->LevelName = UGameplayStatics::GetCurrentLevelName(this, true);
-        GameProgressSaveData->PlayerLocation = SoulCharacter->GetActorLocation();
-        GameProgressSaveData->PlayerRotation = SoulCharacter->GetActorRotation();
         GameProgressSaveData->ElapsedPlayTimeSeconds = GetElapsedPlayTimeSeconds();
         UGameplayStatics::SaveGameToSlot(GameProgressSaveData, UGameProgressSaveData::GetSlotName(), 0);
     }
@@ -1163,16 +1161,6 @@ void ASoulPlayerController::LoadGameProgress()
     }
 
     InitializePlayTimer(GameProgressSaveData->ElapsedPlayTimeSeconds);
-
-    if (APawn* ControlledPawn = GetPawn())
-    {
-        ControlledPawn->SetActorLocationAndRotation(
-            GameProgressSaveData->PlayerLocation,
-            GameProgressSaveData->PlayerRotation,
-            false,
-            nullptr,
-            ETeleportType::TeleportPhysics);
-    }
 }
 
 void ASoulPlayerController::OnCharacterDead()
@@ -1182,7 +1170,12 @@ void ASoulPlayerController::OnCharacterDead()
         return;
     }
 
-    ShowGameOverWidget();
+    if (GetWorldTimerManager().IsTimerActive(GameOverDelayTimerHandle))
+    {
+        return;
+    }
+
+    GetWorldTimerManager().SetTimer(GameOverDelayTimerHandle, this, &ASoulPlayerController::ShowGameOverWidget, 3.0f, false);
 }
 
 void ASoulPlayerController::HandleBossDefeated()
@@ -1192,7 +1185,12 @@ void ASoulPlayerController::HandleBossDefeated()
         return;
     }
 
-    ShowGameClearWidget();
+    if (GetWorldTimerManager().IsTimerActive(GameClearDelayTimerHandle))
+    {
+        return;
+    }
+
+    GetWorldTimerManager().SetTimer(GameClearDelayTimerHandle, this, &ASoulPlayerController::ShowGameClearWidget, 3.0f, false);
 }
 
 void ASoulPlayerController::ShowGameOverWidget()
