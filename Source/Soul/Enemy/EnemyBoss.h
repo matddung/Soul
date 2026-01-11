@@ -67,6 +67,7 @@ protected:
     bool bIsApplyingSkillDamage = false;
 
     FTimerHandle HalfHpSkillTimerHandle;
+    FTimerHandle BossDefeatTimerHandle;
 
     UPROPERTY(Transient)
     TObjectPtr<UParticleSystemComponent> ActiveSkillEffectParticle = nullptr;

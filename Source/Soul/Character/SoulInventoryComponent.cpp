@@ -36,7 +36,6 @@ void USoulInventoryComponent::BeginPlay()
 
     OnInventoryChanged.Broadcast();
     OnQuickSlotChanged.Broadcast();
-    SaveInventory();
 }
 
 void USoulInventoryComponent::SetSlotCount(int32 NewSlotCount, bool bBroadcastChange)
@@ -346,7 +345,6 @@ bool USoulInventoryComponent::AssignQuickSlot(int32 InventorySlotIndex, int32 Qu
     QuickSlotAssignments[QuickSlotNumber - 1] = InventorySlotIndex;
     ValidateQuickSlots();
     OnQuickSlotChanged.Broadcast();
-    SaveInventory();
     return true;
 }
 
@@ -355,7 +353,6 @@ void USoulInventoryComponent::HandleInventoryMutated()
     ValidateQuickSlots();
     OnInventoryChanged.Broadcast();
     OnQuickSlotChanged.Broadcast();
-    SaveInventory();
 }
 
 void USoulInventoryComponent::ValidateQuickSlots()

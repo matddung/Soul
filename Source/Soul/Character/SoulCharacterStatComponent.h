@@ -153,7 +153,7 @@ public:
 	float MaxHP = 300;
 
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Stats")
-	float MaxStamina = 100;
+	float MaxStamina = 300;
 
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Stats")
 	float HP = 300;

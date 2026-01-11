@@ -68,6 +68,7 @@ public:
     void OnGunAmmoChanged(int32 CurrentAmmo, int32 MaxAmmo);
 
     void SaveCurrentGame();
+    void RequestManualSave();
     void HandleBossDefeated();
 
 protected:
@@ -306,6 +307,7 @@ private:
     bool bGameClearOpen = false;
     bool bCanReturnFromClear = false;
     bool bHasSessionPlayTimer = false;
+    bool bManualSaveRequested = false;
 
     float BaseElapsedPlayTimeSeconds = 0.0f;
     float SessionStartTimeSeconds = 0.0f;

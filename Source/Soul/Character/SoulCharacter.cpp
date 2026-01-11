@@ -1412,8 +1412,6 @@ void ASoulCharacter::GiveGunFromBox(bool bAutoEquip)
 
 	ResetGunShots();
 
-	SaveWeaponOwnership(true);
-
 	if (bAutoEquip)
 	{
 		StopAiming();

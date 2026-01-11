@@ -130,6 +130,12 @@ void UEnemyAnimInstance::AnimNotify_SpawnProjectile()
         return;
     }
 
+    const FVector ActorLocation = Enemy->GetActorLocation();
+    FVector TargetLocation = TargetActor->GetActorLocation();
+    TargetLocation.Z = ActorLocation.Z;
+    const FRotator LookRotation = (TargetLocation - ActorLocation).Rotation();
+    Enemy->SetActorRotation(FRotator(0.f, LookRotation.Yaw, 0.f));
+
     Enemy->SpawnProjectileAtTarget(TargetActor);
 }
 

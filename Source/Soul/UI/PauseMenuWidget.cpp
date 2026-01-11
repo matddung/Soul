@@ -174,7 +174,7 @@ void UPauseMenuWidget::OnSaveClicked()
 {
 	if (ASoulPlayerController* SoulPC = Cast<ASoulPlayerController>(GetOwningPlayer()))
 	{
-		SoulPC->SaveCurrentGame();
+		SoulPC->RequestManualSave();
 	}
 }
 

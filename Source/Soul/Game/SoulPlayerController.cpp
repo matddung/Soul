@@ -78,7 +78,6 @@ void ASoulPlayerController::OnPossess(APawn* InPawn)
     RefreshStatusWidget();
     RefreshHUD();
     LoadGameProgress();
-    StartNewGameSaveIfNeeded();
 }
 
 void ASoulPlayerController::OnUnPossess()
@@ -1086,6 +1085,13 @@ void ASoulPlayerController::HandleUseQuickSlotItem(const FInputActionValue& Valu
 
 void ASoulPlayerController::SaveCurrentGame()
 {
+    if (!bManualSaveRequested)
+    {
+        return;
+    }
+
+    bManualSaveRequested = false;
+
     ASoulCharacter* SoulCharacter = GetSoulCharacter();
     if (!SoulCharacter)
     {
@@ -1126,6 +1132,12 @@ void ASoulPlayerController::SaveCurrentGame()
         const bool bHasGunOwned = SoulCharacter->WeaponComponent->HasWeapon(EWeaponType::Gun);
         SoulCharacter->SaveWeaponOwnership(bHasGunOwned);
     }
+}
+
+void ASoulPlayerController::RequestManualSave()
+{
+    bManualSaveRequested = true;
+    SaveCurrentGame();
 }
 
 void ASoulPlayerController::LoadGameProgress()

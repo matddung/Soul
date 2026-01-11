@@ -78,8 +78,6 @@ bool USoulCharacterStatComponent::TryInvestStat(ECharacterStatType StatToIncreas
 
 	RecalculateDerivedStats(true);
 
-	SaveStatData();
-
 	return true;
 }
 
@@ -100,8 +98,6 @@ bool USoulCharacterStatComponent::TryRefundStat(ECharacterStatType StatToDecreas
 	Souls += RefundCost;
 
 	RecalculateDerivedStats(true);
-
-	SaveStatData();
 
 	return true;
 }
@@ -189,7 +185,6 @@ bool USoulCharacterStatComponent::EnhanceWeapon(EWeaponType Type)
 	*TargetEnhancementLevel += 1;
 
 	RecalculateDerivedStats(false);
-	SaveStatData();
 
 	return true;
 }

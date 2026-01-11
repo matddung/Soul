@@ -1,5 +1,6 @@
 #include "SoulDoorActor.h"
 #include "../Character/SoulCharacter.h"
+#include "../Game/GameProgressSaveData.h"
 
 #include "Components/BoxComponent.h"
 #include "Kismet/GameplayStatics.h"
@@ -170,6 +171,24 @@ void ASoulDoorActor::OnPortalBeginOverlap(UPrimitiveComponent*, AActor* OtherAct
 	if (TargetLevelName.IsNone())
 	{
 		return;
+	}
+
+	const FString SlotName = UGameProgressSaveData::GetSlotName();
+	UGameProgressSaveData* SaveData = nullptr;
+	if (UGameplayStatics::DoesSaveGameExist(SlotName, 0))
+	{
+		SaveData = Cast<UGameProgressSaveData>(UGameplayStatics::LoadGameFromSlot(SlotName, 0));
+	}
+
+	if (!SaveData)
+	{
+		SaveData = Cast<UGameProgressSaveData>(UGameplayStatics::CreateSaveGameObject(UGameProgressSaveData::StaticClass()));
+	}
+
+	if (SaveData)
+	{
+		SaveData->LevelName = TargetLevelName.ToString();
+		UGameplayStatics::SaveGameToSlot(SaveData, SlotName, 0);
 	}
 
 	UGameplayStatics::OpenLevel(GetWorld(), TargetLevelName);
