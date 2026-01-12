@@ -58,3 +58,9 @@
 ## Blueprint 중심 / C++ 중심
 - **C++ 중심** : 핵심 게임플레이(캐릭터/AI/인벤토리/세이브/컨트롤러)가 C++ 클래스 기반으로 구성되어 있습니다.
 - **Blueprint 확장 가능** : 데이터 에셋/위젯/컴포넌트는 Blueprint 타입 노출을 통해 에디터 확장을 염두에 둔 구조입니다.
+
+## ▶ [Playable Build](https://github.com/matddung/Soul/releases/tag/v1.0)
+Download the playable demo from GitHub Releases.
+
+- Windows 64-bit
+- Approx : 1.3GB
