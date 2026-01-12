@@ -9,6 +9,9 @@
 - **목표**: 캐릭터 성장/장비/전투를 중심으로 한 싱글 플레이 경험 구현 (스탯 투자, 인벤토리, 세이브 데이터 기반 진행)
 - **플랫폼**: Unreal Engine 프로젝트 구조 기준(에디터/PC 개발 환경)
 
+## 프로젝트 기간
+- 2025.12 ~ 2026.01
+
 ## 프로젝트 목적
 - Unreal Engine C++ 기반 게임플레이 아키텍처 설계 경험
 - 소울라이크 전투 구조(스태미나/회피/콤보) 구현
@@ -55,3 +58,9 @@
 ## Blueprint 중심 / C++ 중심
 - **C++ 중심** : 핵심 게임플레이(캐릭터/AI/인벤토리/세이브/컨트롤러)가 C++ 클래스 기반으로 구성되어 있습니다.
 - **Blueprint 확장 가능** : 데이터 에셋/위젯/컴포넌트는 Blueprint 타입 노출을 통해 에디터 확장을 염두에 둔 구조입니다.
+
+## ▶ [Playable Build](https://github.com/matddung/Soul/releases/tag/v1.0)
+Download the playable demo from GitHub Releases.
+
+- Windows 64-bit
+- Approx : 1.3GB
