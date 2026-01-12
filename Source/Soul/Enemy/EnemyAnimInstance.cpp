@@ -89,6 +89,7 @@ void UEnemyAnimInstance::PlayDeathMontage()
     }
 
     Montage_Stop(0.0f);
+    DeathMontage->bEnableAutoBlendOut = false;
     Montage_Play(DeathMontage, 1.0f);
 }
 

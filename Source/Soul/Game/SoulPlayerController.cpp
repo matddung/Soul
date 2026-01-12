@@ -57,6 +57,9 @@ void ASoulPlayerController::BeginPlay()
         if (HUDWidget)
         {
             HUDWidget->AddToViewport();
+            BindStatComponent();
+            BindInventoryComponent();
+            RefreshHUD();
         }
     }
 }
@@ -76,8 +79,8 @@ void ASoulPlayerController::OnPossess(APawn* InPawn)
     BindStatComponent();
     BindInventoryComponent();
     RefreshStatusWidget();
-    RefreshHUD();
     LoadGameProgress();
+    RefreshHUD();
 }
 
 void ASoulPlayerController::OnUnPossess()

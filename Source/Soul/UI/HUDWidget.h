@@ -35,25 +35,25 @@ protected:
     FText BuildQuickSlotLabel(int32 QuickSlotOffset) const;
 
 protected:
-    UPROPERTY(meta = (BindWidgetOptional))
+    UPROPERTY(meta = (BindWidget))
     USizeBox* Box_Health;
 
-    UPROPERTY(meta = (BindWidgetOptional))
+    UPROPERTY(meta = (BindWidget))
     USizeBox* Box_Stamina;
 
-    UPROPERTY(meta = (BindWidgetOptional))
+    UPROPERTY(meta = (BindWidget))
     UProgressBar* Prg_Health;
 
-    UPROPERTY(meta = (BindWidgetOptional))
+    UPROPERTY(meta = (BindWidget))
     UProgressBar* Prg_Stamina;
 
-    UPROPERTY(meta = (BindWidgetOptional))
+    UPROPERTY(meta = (BindWidget))
     UTextBlock* Txt_QuickSlotA;
 
-    UPROPERTY(meta = (BindWidgetOptional))
+    UPROPERTY(meta = (BindWidget))
     UTextBlock* Txt_QuickSlotB;
 
-    UPROPERTY(meta = (BindWidgetOptional))
+    UPROPERTY(meta = (BindWidget))
     UTextBlock* Txt_GunAmmo;
 
 private:
