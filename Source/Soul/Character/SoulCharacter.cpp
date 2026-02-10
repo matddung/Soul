@@ -396,8 +396,7 @@ void ASoulCharacter::SprintStart(const FInputActionValue& Value)
 
 	StopAiming();
 
-	ActionState = ECharacterActionState::Sprinting;
-	UpdateMovementSpeed();
+	TransitionActionState(ECharacterActionState::Sprinting);
 }
 
 void ASoulCharacter::SprintStop(const FInputActionValue& Value)
@@ -409,10 +408,8 @@ void ASoulCharacter::SprintStop(const FInputActionValue& Value)
 
 	if (GetIsSprinting())
 	{
-		ActionState = ECharacterActionState::Idle;
+		TransitionActionState(ECharacterActionState::Idle);
 	}
-
-	UpdateMovementSpeed();
 }
 
 bool ASoulCharacter::IsGrounded() const
@@ -528,17 +525,7 @@ void ASoulCharacter::GunAimStart(const FInputActionValue& Value)
 		return;
 	}
 
-	bUseControllerRotationYaw = true;
-	GetCharacterMovement()->bOrientRotationToMovement = false;
-	UpdateMovementSpeed();
-
-	if (APlayerController* PC = Cast<APlayerController>(GetController()))
-	{
-		if (auto SoulPC = Cast<ASoulPlayerController>(PC))
-		{
-			SoulPC->ShowCrosshair(true);
-		}
-	}
+	TransitionActionState(ECharacterActionState::Aiming);
 }
 
 void ASoulCharacter::GunAimStop(const FInputActionValue& Value)
@@ -553,19 +540,7 @@ void ASoulCharacter::StopAiming()
 		return;
 	}
 
-	ActionState = ECharacterActionState::Idle;
-
-	bUseControllerRotationYaw = false;
-	GetCharacterMovement()->bOrientRotationToMovement = true;
-	UpdateMovementSpeed();
-
-	if (APlayerController* PC = Cast<APlayerController>(GetController()))
-	{
-		if (auto SoulPC = Cast<ASoulPlayerController>(PC))
-		{
-			SoulPC->ShowCrosshair(false);
-		}
-	}
+	TransitionActionState(ECharacterActionState::Idle);
 }
 
 void ASoulCharacter::Attack(const FInputActionValue& Value)
@@ -638,7 +613,7 @@ void ASoulCharacter::HandleSwordAttack()
 		AttackStartComboState();
 		AnimInstance->PlaySwordAttackMontage();
 		AnimInstance->JumpToAttackMontageSection(CurrentCombo);
-		ActionState = ECharacterActionState::Attack;
+		TransitionActionState(ECharacterActionState::Attack);
 	}
 }
 
@@ -771,7 +746,7 @@ void ASoulCharacter::OnAttackMontageEnded(UAnimMontage* Montage, bool bInterrupt
 		return;
 	}
 
-	ActionState = ECharacterActionState::Idle;
+	TransitionActionState(ECharacterActionState::Idle);
 	AttackEndComboState();
 
 	OnAttackEnd.Broadcast();
@@ -869,7 +844,7 @@ void ASoulCharacter::Dodge(const FInputActionValue& Value)
 		return;
 	}
 
-	ActionState = ECharacterActionState::Dodge;
+	TransitionActionState(ECharacterActionState::Dodge);
 
 	UCharacterMovementComponent* MoveComp = GetCharacterMovement();
 	MoveComp->bOrientRotationToMovement = false;
@@ -900,7 +875,7 @@ void ASoulCharacter::OnDodgeFinished()
 {
 	if (ActionState == ECharacterActionState::Dodge)
 	{
-		ActionState = ECharacterActionState::Idle;
+		TransitionActionState(ECharacterActionState::Idle);
 	}
 
 	GetCharacterMovement()->bOrientRotationToMovement = true;
@@ -930,7 +905,7 @@ void ASoulCharacter::HandleDead()
 
 	GetCharacterMovement()->DisableMovement();
 
-	UpdateMovementSpeed();
+	TransitionActionState(ECharacterActionState::Dead);
 
 	SetActorEnableCollision(false);
 
@@ -951,7 +926,7 @@ void ASoulCharacter::OnHitDamage(bool bUseKnockback)
 	{
 		if (ActionState == ECharacterActionState::Dodge)
 		{
-			ActionState = ECharacterActionState::Idle;
+			TransitionActionState(ECharacterActionState::Idle);
 		}
 		bDodgeInvincible = false;
 		GetCharacterMovement()->bOrientRotationToMovement = true;
@@ -969,12 +944,12 @@ void ASoulCharacter::OnHitDamage(bool bUseKnockback)
 		}
 	}
 
-	ActionState = ECharacterActionState::Hit;
+	TransitionActionState(ECharacterActionState::Hit);
 
 	GetWorldTimerManager().SetTimer(HitRecoveryTimer, [this]() {
 		if (ActionState == ECharacterActionState::Hit)
 		{
-			ActionState = ECharacterActionState::Idle;
+			TransitionActionState(ECharacterActionState::Idle);
 		}
 		}, 0.3, false);
 }
@@ -1197,10 +1172,8 @@ void ASoulCharacter::BeginLadder(ASoulLadderActor* Ladder)
 
 	if (GetIsSprinting())
 	{
-		ActionState = ECharacterActionState::Idle;
+		TransitionActionState(ECharacterActionState::Idle);
 	}
-
-	UpdateMovementSpeed();
 
 	CurrentLadder = Ladder;
 	LadderInput = 0;
@@ -1273,7 +1246,7 @@ void ASoulCharacter::EndLadder()
 void ASoulCharacter::EnterLadderMode()
 {
 	LocomotionState = ELocomotionState::Ladder;
-	ActionState = ECharacterActionState::OnLadder;
+	TransitionActionState(ECharacterActionState::OnLadder);
 
 	if (UCharacterMovementComponent* MoveComp = GetCharacterMovement())
 	{
@@ -1293,7 +1266,7 @@ void ASoulCharacter::ExitLadderMode()
 	LocomotionState = ELocomotionState::Normal;
 	if (ActionState == ECharacterActionState::OnLadder)
 	{
-		ActionState = ECharacterActionState::Idle;
+		TransitionActionState(ECharacterActionState::Idle);
 	}
 
 	if (UCharacterMovementComponent* MoveComp = GetCharacterMovement())
@@ -1438,7 +1411,7 @@ void ASoulCharacter::GiveGunFromBox(bool bAutoEquip)
 		
 		if (GetIsSprinting())
 		{
-			ActionState = ECharacterActionState::Idle;
+			TransitionActionState(ECharacterActionState::Idle);
 		}
 
 		WeaponComponent->EquipWeapon(EWeaponType::Gun);
@@ -1623,8 +1596,7 @@ void ASoulCharacter::UpdateStamina(float DeltaSeconds)
 			const bool bHadEnough = StatComp->ConsumeStamina(DrainAmount);
 			if (!bHadEnough)
 			{
-				ActionState = ECharacterActionState::Idle;
-				UpdateMovementSpeed();
+				TransitionActionState(ECharacterActionState::Idle);
 			}
 		}
 	}
@@ -1638,4 +1610,36 @@ void ASoulCharacter::UpdateStamina(float DeltaSeconds)
 bool ASoulCharacter::TryConsumeStamina(float Amount)
 {
 	return StatComp && StatComp->ConsumeStamina(Amount);
+}
+
+void ASoulCharacter::TransitionActionState(ECharacterActionState NewState)
+{
+	ActionState = NewState;
+
+	if (ActionState == ECharacterActionState::Aiming)
+	{
+		bUseControllerRotationYaw = true;
+		if (UCharacterMovementComponent* MoveComp = GetCharacterMovement())
+		{
+			MoveComp->bOrientRotationToMovement = false;
+		}
+	}
+	else
+	{
+		bUseControllerRotationYaw = false;
+		if (UCharacterMovementComponent* MoveComp = GetCharacterMovement())
+		{
+			MoveComp->bOrientRotationToMovement = (LocomotionState == ELocomotionState::Normal);
+		}
+	}
+
+	if (APlayerController* PC = Cast<APlayerController>(GetController()))
+	{
+		if (ASoulPlayerController* SoulPC = Cast<ASoulPlayerController>(PC))
+		{
+			SoulPC->ShowCrosshair(ActionState == ECharacterActionState::Aiming);
+		}
+	}
+
+	UpdateMovementSpeed();
 }

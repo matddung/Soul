@@ -151,6 +151,8 @@ protected:
 	void UpdateStamina(float DeltaSeconds);
 	bool TryConsumeStamina(float Amount);
 
+	void TransitionActionState(ECharacterActionState NewState);
+
 public:
 	FOnAutoFaceEndDelegate OnAutoFaceEnd;
 
