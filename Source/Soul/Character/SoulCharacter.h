@@ -25,6 +25,19 @@ enum class ELocomotionState : uint8
 	Ladder	UMETA(DisplayName = "Ladder")
 };
 
+UENUM(BlueprintType)
+enum class ECharacterActionState : uint8
+{
+	Idle		UMETA(DisplayName = "Idle"),
+	Attack		UMETA(DisplayName = "Attack"),
+	Dodge		UMETA(DisplayName = "Dodge"),
+	Hit			UMETA(DisplayName = "Hit"),
+	Sprinting	UMETA(DisplayName = "Sprinting"),
+	Aiming		UMETA(DisplayName = "Aiming"),
+	Dead		UMETA(DisplayName = "Dead"),
+	OnLadder	UMETA(DisplayName = "OnLadder")
+};
+
 UCLASS()
 class SOUL_API ASoulCharacter : public ACharacter
 {
@@ -35,13 +48,15 @@ public:
 
 	ASoulCharacter();
 
-	FORCEINLINE bool GetIsSprinting() const { return bIsSprinting; }
-	FORCEINLINE bool GetIsAttacking() const { return bIsAttacking; }
+	FORCEINLINE bool GetIsSprinting() const { return ActionState == ECharacterActionState::Sprinting; }
+	FORCEINLINE bool GetIsAttacking() const { return ActionState == ECharacterActionState::Attack; }
 	FORCEINLINE EWeaponType GetCurrentWeaponType() const { return CurrentWeaponType; }
-	FORCEINLINE bool GetIsAiming() const { return bIsAiming; }
-	FORCEINLINE bool GetIsDead() const { return bIsDead; }
-	FORCEINLINE bool GetIsHit() const { return bIsHit; }
-	FORCEINLINE bool IsOnLadder() const { return LocomotionState == ELocomotionState::Ladder; }
+	FORCEINLINE bool GetIsAiming() const { return ActionState == ECharacterActionState::Aiming; }
+	FORCEINLINE bool GetIsDead() const { return ActionState == ECharacterActionState::Dead; }
+	FORCEINLINE bool GetIsHit() const { return ActionState == ECharacterActionState::Hit; }
+	FORCEINLINE bool GetIsDodging() const { return ActionState == ECharacterActionState::Dodge; }
+	FORCEINLINE ECharacterActionState GetActionState() const { return ActionState; }
+	FORCEINLINE bool IsOnLadder() const { return ActionState == ECharacterActionState::OnLadder; }
 	FORCEINLINE float GetLadderInput() const { return LadderInput; }
 	FORCEINLINE int32 GetMaxGunShots() const { return MaxGunShots; }
 	FORCEINLINE int32 GetRemainingGunShots() const { return RemainingGunShots; }
@@ -166,14 +181,11 @@ protected:
 	UPROPERTY(EditAnywhere, Category = "Movement")
 	float GunAimWalkSpeed = 50;
 
-	UPROPERTY(VisibleInstanceOnly, BlueprintReadOnly, Category = "Movement", meta = (AllowPrivateAccess = "true"))
-	bool bIsSprinting = false;
-
 	UPROPERTY()
 	TObjectPtr<class USoulAnimInstance> AnimInstance;
 
 	UPROPERTY(VisibleInstanceOnly, Category = "Weapon")
-	bool bIsAttacking;
+	ECharacterActionState ActionState = ECharacterActionState::Idle;
 
 	UPROPERTY(VisibleInstanceOnly, Category = "Weapon")
 	bool CanNextCombo;
@@ -192,9 +204,6 @@ protected:
 
 	UPROPERTY(VisibleInstanceOnly, Category = "Weapon")
 	bool bCanGunFire = true;
-
-	UPROPERTY(VisibleInstanceOnly, Category = "Weapon")
-	bool bIsAiming = false;
 
 	UPROPERTY(VisibleInstanceOnly, Category = "Camera")
 	float DefaultFOV = 90;
@@ -229,9 +238,6 @@ protected:
 	UPROPERTY(EditAnywhere, Category = "Weapon|Gun")
 	float GunRange = 2000;
 
-	UPROPERTY(VisibleInstanceOnly, BlueprintReadOnly, Category = "Movement", meta = (AllowPrivateAccess = "true"))
-	bool bIsDodging = false;
-
 	UPROPERTY(EditAnywhere, Category = "Movement")
 	float DodgeStrength = 400;
 
@@ -240,12 +246,6 @@ protected:
 
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Components")
 	TObjectPtr<USoulCharacterStatComponent> StatComp;
-
-	UPROPERTY(VisibleInstanceOnly, BlueprintReadOnly, Category = "Movement", meta = (AllowPrivateAccess = "true"))
-	bool bIsDead = false;
-
-	UPROPERTY(VisibleInstanceOnly, BlueprintReadOnly, Category = "Movement", meta = (AllowPrivateAccess = "true"))
-	bool bIsHit = false;
 
 	FTimerHandle HitRecoveryTimer;
 

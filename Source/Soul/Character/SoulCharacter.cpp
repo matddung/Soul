@@ -165,24 +165,24 @@ void ASoulCharacter::Tick(float DeltaSeconds)
 {
 	Super::Tick(DeltaSeconds);
 
-	if (bIsAiming && GetCharacterMovement() && !GetCharacterMovement()->IsMovingOnGround())
+	if (GetIsAiming() && GetCharacterMovement() && !GetCharacterMovement()->IsMovingOnGround())
 	{
 		StopAiming();
 	}
 
 	if (FollowCamera)
 	{
-		const float TargetFOV = bIsAiming ? AimFOV : DefaultFOV;
+		const float TargetFOV = GetIsAiming() ? AimFOV : DefaultFOV;
 		const float NewFOV = FMath::FInterpTo(FollowCamera->FieldOfView, TargetFOV, DeltaSeconds, FOVInterpSpeed);
 		FollowCamera->SetFieldOfView(NewFOV);
 	}
 
 	if (CameraBoom)
 	{
-		const float TargetArm = bIsAiming ? AimArmLength : DefaultArmLength;
+		const float TargetArm = GetIsAiming() ? AimArmLength : DefaultArmLength;
 		CameraBoom->TargetArmLength = FMath::FInterpTo(CameraBoom->TargetArmLength, TargetArm, DeltaSeconds, CameraInterpSpeed);
 
-		const FVector TargetOffset = bIsAiming ? AimSocketOffset : DefaultSocketOffset;
+		const FVector TargetOffset = GetIsAiming() ? AimSocketOffset : DefaultSocketOffset;
 		CameraBoom->SocketOffset = FMath::VInterpTo(CameraBoom->SocketOffset, TargetOffset, DeltaSeconds, CameraInterpSpeed);
 	}
 
@@ -297,7 +297,7 @@ void ASoulCharacter::Move(const FInputActionValue& Value)
 		return;
 	}
 
-	if (CurrentWeaponType == EWeaponType::Sword && bIsAttacking)
+	if (CurrentWeaponType == EWeaponType::Sword && GetIsAttacking())
 	{
 		if (UCharacterMovementComponent* MoveComp = GetCharacterMovement())
 		{
@@ -340,7 +340,7 @@ void ASoulCharacter::UpdateMovementSpeed()
 
 	float TargetSpeed = EmptyWalkSpeed;
 
-	if (bIsAiming && CurrentWeaponType == EWeaponType::Gun)
+	if (GetIsAiming() && CurrentWeaponType == EWeaponType::Gun)
 	{
 		TargetSpeed = GunAimWalkSpeed;
 	}
@@ -349,7 +349,7 @@ void ASoulCharacter::UpdateMovementSpeed()
 		switch (CurrentWeaponType)
 		{
 		case EWeaponType::Sword:
-			TargetSpeed = bIsSprinting ? SwordSprintSpeed : SwordWalkSpeed;
+			TargetSpeed = GetIsSprinting() ? SwordSprintSpeed : SwordWalkSpeed;
 			break;
 
 		case EWeaponType::Gun:
@@ -358,7 +358,7 @@ void ASoulCharacter::UpdateMovementSpeed()
 
 		case EWeaponType::Empty:
 		default:
-			TargetSpeed = bIsSprinting ? EmptySprintSpeed : EmptyWalkSpeed;
+			TargetSpeed = GetIsSprinting() ? EmptySprintSpeed : EmptyWalkSpeed;
 			break;
 		}
 	}
@@ -395,7 +395,7 @@ void ASoulCharacter::SprintStart(const FInputActionValue& Value)
 
 	StopAiming();
 
-	bIsSprinting = true;
+	ActionState = ECharacterActionState::Sprinting;
 	UpdateMovementSpeed();
 }
 
@@ -406,7 +406,11 @@ void ASoulCharacter::SprintStop(const FInputActionValue& Value)
 		return;
 	}
 
-	bIsSprinting = false;
+	if (GetIsSprinting())
+	{
+		ActionState = ECharacterActionState::Idle;
+	}
+
 	UpdateMovementSpeed();
 }
 
@@ -442,7 +446,6 @@ void ASoulCharacter::SwapSword(const FInputActionValue& Value)
 	if (WeaponComponent && WeaponComponent->EquipWeapon(EWeaponType::Sword))
 	{
 		CurrentWeaponType = EWeaponType::Sword;
-		bIsAiming = false;
 		UpdateMovementSpeed();
 		NotifyGunAmmoChanged();
 	}
@@ -468,7 +471,6 @@ void ASoulCharacter::SwapGun(const FInputActionValue& Value)
 	if (WeaponComponent && WeaponComponent->EquipWeapon(EWeaponType::Gun))
 	{
 		CurrentWeaponType = EWeaponType::Gun;
-		bIsAiming = false;
 		UpdateMovementSpeed();
 		NotifyGunAmmoChanged();
 	}
@@ -525,8 +527,6 @@ void ASoulCharacter::GunAimStart(const FInputActionValue& Value)
 		return;
 	}
 
-	bIsAiming = true;
-
 	bUseControllerRotationYaw = true;
 	GetCharacterMovement()->bOrientRotationToMovement = false;
 	UpdateMovementSpeed();
@@ -547,12 +547,12 @@ void ASoulCharacter::GunAimStop(const FInputActionValue& Value)
 
 void ASoulCharacter::StopAiming()
 {
-	if (!bIsAiming)
+	if (!GetIsAiming())
 	{
 		return;
 	}
 
-	bIsAiming = false;
+	ActionState = ECharacterActionState::Idle;
 
 	bUseControllerRotationYaw = false;
 	GetCharacterMovement()->bOrientRotationToMovement = true;
@@ -584,7 +584,7 @@ void ASoulCharacter::Attack(const FInputActionValue& Value)
 		return;
 	}
 
-	if (IsAnimationBlockingActions() && !bIsAttacking)
+	if (IsAnimationBlockingActions() && !GetIsAttacking())
 	{
 		return;
 	}
@@ -611,7 +611,7 @@ void ASoulCharacter::HandleSwordAttack()
 		return;
 	}
 
-	if (bIsAttacking)
+	if (GetIsAttacking())
 	{
 		if (!FMath::IsWithinInclusive<int32>(CurrentCombo, 1, MaxCombo))
 		{
@@ -637,7 +637,7 @@ void ASoulCharacter::HandleSwordAttack()
 		AttackStartComboState();
 		AnimInstance->PlaySwordAttackMontage();
 		AnimInstance->JumpToAttackMontageSection(CurrentCombo);
-		bIsAttacking = true;
+		ActionState = ECharacterActionState::Attack;
 	}
 }
 
@@ -648,7 +648,7 @@ void ASoulCharacter::HandleGunAttack()
 		return;
 	}
 
-	if (!bIsAiming)
+	if (!GetIsAiming())
 	{
 		return;
 	}
@@ -760,7 +760,7 @@ void ASoulCharacter::OnGunShotEnd()
 
 void ASoulCharacter::OnAttackMontageEnded(UAnimMontage* Montage, bool bInterrupted)
 {
-	if (!bIsAttacking)
+	if (!GetIsAttacking())
 	{
 		return;
 	}
@@ -770,7 +770,7 @@ void ASoulCharacter::OnAttackMontageEnded(UAnimMontage* Montage, bool bInterrupt
 		return;
 	}
 
-	bIsAttacking = false;
+	ActionState = ECharacterActionState::Idle;
 	AttackEndComboState();
 
 	OnAttackEnd.Broadcast();
@@ -843,12 +843,12 @@ void ASoulCharacter::Dodge(const FInputActionValue& Value)
 		return;
 	}
 
-	if (bIsDodging)
+	if (GetIsDodging())
 	{
 		return;
 	}
 
-	if (bIsAttacking)
+	if (GetIsAttacking())
 	{
 		return;
 	}
@@ -868,7 +868,7 @@ void ASoulCharacter::Dodge(const FInputActionValue& Value)
 		return;
 	}
 
-	bIsDodging = true;
+	ActionState = ECharacterActionState::Dodge;
 
 	UCharacterMovementComponent* MoveComp = GetCharacterMovement();
 	MoveComp->bOrientRotationToMovement = false;
@@ -897,7 +897,10 @@ void ASoulCharacter::Dodge(const FInputActionValue& Value)
 
 void ASoulCharacter::OnDodgeFinished()
 {
-	bIsDodging = false;
+	if (ActionState == ECharacterActionState::Dodge)
+	{
+		ActionState = ECharacterActionState::Idle;
+	}
 
 	GetCharacterMovement()->bOrientRotationToMovement = true;
 }
@@ -914,18 +917,18 @@ void ASoulCharacter::EndDodgeInvincible()
 
 void ASoulCharacter::HandleDead()
 {
-	if (bIsDead)
+	if (GetIsDead())
 	{
 		return;
 	}
 
-	bIsDead = true;
+	if (GetIsAiming())
+	{
+		StopAiming();
+	}
 
 	GetCharacterMovement()->DisableMovement();
 
-	bIsAttacking = false;
-	bIsSprinting = false;
-	bIsAiming = false;
 	UpdateMovementSpeed();
 
 	SetActorEnableCollision(false);
@@ -938,14 +941,17 @@ void ASoulCharacter::HandleDead()
 
 void ASoulCharacter::OnHitDamage(bool bUseKnockback)
 {
-	if (bIsDead)
+	if (GetIsDead())
 	{
 		return;
 	}
 
-	if (bIsDodging)
+	if (GetIsDodging())
 	{
-		bIsDodging = false;
+		if (ActionState == ECharacterActionState::Dodge)
+		{
+			ActionState = ECharacterActionState::Idle;
+		}
 		bDodgeInvincible = false;
 		GetCharacterMovement()->bOrientRotationToMovement = true;
 	}
@@ -962,10 +968,13 @@ void ASoulCharacter::OnHitDamage(bool bUseKnockback)
 		}
 	}
 
-	bIsHit = true;
+	ActionState = ECharacterActionState::Hit;
 
 	GetWorldTimerManager().SetTimer(HitRecoveryTimer, [this]() {
-		bIsHit = false;
+		if (ActionState == ECharacterActionState::Hit)
+		{
+			ActionState = ECharacterActionState::Idle;
+		}
 		}, 0.3, false);
 }
 
@@ -1184,7 +1193,12 @@ void ASoulCharacter::BeginLadder(ASoulLadderActor* Ladder)
 	}
 
 	StopAiming();
-	bIsSprinting = false;
+
+	if (GetIsSprinting())
+	{
+		ActionState = ECharacterActionState::Idle;
+	}
+
 	UpdateMovementSpeed();
 
 	CurrentLadder = Ladder;
@@ -1258,6 +1272,7 @@ void ASoulCharacter::EndLadder()
 void ASoulCharacter::EnterLadderMode()
 {
 	LocomotionState = ELocomotionState::Ladder;
+	ActionState = ECharacterActionState::OnLadder;
 
 	if (UCharacterMovementComponent* MoveComp = GetCharacterMovement())
 	{
@@ -1275,6 +1290,10 @@ void ASoulCharacter::EnterLadderMode()
 void ASoulCharacter::ExitLadderMode()
 {
 	LocomotionState = ELocomotionState::Normal;
+	if (ActionState == ECharacterActionState::OnLadder)
+	{
+		ActionState = ECharacterActionState::Idle;
+	}
 
 	if (UCharacterMovementComponent* MoveComp = GetCharacterMovement())
 	{
@@ -1415,7 +1434,11 @@ void ASoulCharacter::GiveGunFromBox(bool bAutoEquip)
 	if (bAutoEquip)
 	{
 		StopAiming();
-		bIsSprinting = false;
+		
+		if (GetIsSprinting())
+		{
+			ActionState = ECharacterActionState::Idle;
+		}
 
 		WeaponComponent->EquipWeapon(EWeaponType::Gun);
 		CurrentWeaponType = EWeaponType::Gun;
@@ -1586,9 +1609,9 @@ void ASoulCharacter::UpdateStamina(float DeltaSeconds)
 		return;
 	}
 
-	bool bIsUsingStamina = bIsAttacking || bIsDodging;
+	bool bIsUsingStamina = GetIsAttacking() || GetIsDodging();
 
-	if (bIsSprinting && LocomotionState == ELocomotionState::Normal)
+	if (GetIsSprinting() && LocomotionState == ELocomotionState::Normal)
 	{
 		const UCharacterMovementComponent* MoveComp = GetCharacterMovement();
 		const bool bHasVelocity = MoveComp && !MoveComp->Velocity.IsNearlyZero();
@@ -1599,7 +1622,7 @@ void ASoulCharacter::UpdateStamina(float DeltaSeconds)
 			const bool bHadEnough = StatComp->ConsumeStamina(DrainAmount);
 			if (!bHadEnough)
 			{
-				bIsSprinting = false;
+				ActionState = ECharacterActionState::Idle;
 				UpdateMovementSpeed();
 			}
 		}
