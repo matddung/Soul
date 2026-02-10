@@ -289,10 +289,9 @@ void ASoulCharacter::Move(const FInputActionValue& Value)
 		return;
 	}
 
-	FVector2D MovementVector = Value.Get<FVector2D>();
-
 	if (LocomotionState == ELocomotionState::Ladder)
 	{
+		FVector2D MovementVector = Value.Get<FVector2D>();
 		LadderInput = MovementVector.Y;
 		return;
 	}
@@ -306,6 +305,8 @@ void ASoulCharacter::Move(const FInputActionValue& Value)
 
 		return;
 	}
+
+	FVector2D MovementVector = Value.Get<FVector2D>();
 
 	const FRotator Rotation = GetController()->GetControlRotation();
 	const FRotator YawRotation(0, Rotation.Yaw, 0);
@@ -426,17 +427,17 @@ bool ASoulCharacter::IsGrounded() const
 
 void ASoulCharacter::SwapSword(const FInputActionValue& Value)
 {
-	if (!Value.Get<bool>())
-	{
-		return;
-	}
-
 	if (LocomotionState == ELocomotionState::Ladder)
 	{
 		return;
 	}
 
 	if (IsAnimationBlockingActions())
+	{
+		return;
+	}
+
+	if (!Value.Get<bool>())
 	{
 		return;
 	}
@@ -453,17 +454,17 @@ void ASoulCharacter::SwapSword(const FInputActionValue& Value)
 
 void ASoulCharacter::SwapGun(const FInputActionValue& Value)
 {
-	if (!Value.Get<bool>())
-	{
-		return;
-	}
-
 	if (LocomotionState == ELocomotionState::Ladder)
 	{
 		return;
 	}
 
 	if (IsAnimationBlockingActions())
+	{
+		return;
+	}
+
+	if (!Value.Get<bool>())
 	{
 		return;
 	}
@@ -478,17 +479,17 @@ void ASoulCharacter::SwapGun(const FInputActionValue& Value)
 
 void ASoulCharacter::SwapEmpty(const FInputActionValue& Value)
 {
-	if (!Value.Get<bool>())
-	{
-		return;
-	}
-
 	if (LocomotionState == ELocomotionState::Ladder)
 	{
 		return;
 	}
 
 	if (IsAnimationBlockingActions())
+	{
+		return;
+	}
+
+	if (!Value.Get<bool>())
 	{
 		return;
 	}
@@ -507,17 +508,17 @@ void ASoulCharacter::SwapEmpty(const FInputActionValue& Value)
 
 void ASoulCharacter::GunAimStart(const FInputActionValue& Value)
 {
-	if (!Value.Get<bool>())
-	{
-		return;
-	}
-
 	if (LocomotionState == ELocomotionState::Ladder)
 	{
 		return;
 	}
 
 	if (CurrentWeaponType != EWeaponType::Gun)
+	{
+		return;
+	}
+
+	if (!Value.Get<bool>())
 	{
 		return;
 	}
@@ -569,17 +570,17 @@ void ASoulCharacter::StopAiming()
 
 void ASoulCharacter::Attack(const FInputActionValue& Value)
 {
-	if (!Value.Get<bool>())
-	{
-		return;
-	}
-
 	if (LocomotionState == ELocomotionState::Ladder)
 	{
 		return;
 	}
 
 	if (!IsGrounded())
+	{
+		return;
+	}
+
+	if (!Value.Get<bool>())
 	{
 		return;
 	}
@@ -828,17 +829,17 @@ void ASoulCharacter::AttackCheck()
 
 void ASoulCharacter::Dodge(const FInputActionValue& Value)
 {
-	if (!Value.Get<bool>())
-	{
-		return;
-	}
-
-	if (IsAnimationBlockingActions())
+	if(IsAnimationBlockingActions())
 	{
 		return;
 	}
 
 	if (CurrentWeaponType == EWeaponType::Gun)
+	{
+		return;
+	}
+
+	if (!Value.Get<bool>())
 	{
 		return;
 	}
@@ -998,17 +999,17 @@ void ASoulCharacter::SpawnDamageText(AActor* DamagedActor, float Damage)
 
 void ASoulCharacter::Interact(const FInputActionValue& Value)
 {
-	if (!Value.Get<bool>())
-	{
-		return;
-	}
-
 	if (!CurrentInteractTarget.IsValid())
 	{
 		return;
 	}
 
 	if (IsAnimationBlockingActions())
+	{
+		return;
+	}
+
+	if (!Value.Get<bool>())
 	{
 		return;
 	}
