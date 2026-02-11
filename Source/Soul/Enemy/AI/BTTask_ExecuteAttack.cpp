@@ -21,12 +21,11 @@ EBTNodeResult::Type UBTTask_ExecuteAttack::ExecuteTask(UBehaviorTreeComponent& O
     AActor* Target = Cast<AActor>(BB->GetValueAsObject(TargetActorKey.SelectedKeyName));
     if (!IsValid(Target)) return EBTNodeResult::Failed;
 
-    const bool bDidAttack = Enemy->CanAttack(Target);
+    const bool bDidAttack = Enemy->TryExecuteAttack(Target);
     if (!bDidAttack)
     {
         return EBTNodeResult::Succeeded;
     }
 
-    Enemy->DoAttack(Target);
     return EBTNodeResult::Succeeded;
 }

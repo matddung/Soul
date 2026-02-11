@@ -189,17 +189,13 @@ void AEnemyBase::DoAttack(AActor* Target)
         return;
     }
 
-    CurrentTarget = Target;
-    bIsAttacking = true;
-    LastAttackTime = GetWorld() ? GetWorld()->GetTimeSeconds() : 0.f;
-
-    if (UCharacterMovementComponent* CharacterMovementComp = GetCharacterMovement())
+    if (!BeginAttackState())
     {
-        CachedMovementMode = CharacterMovementComp->MovementMode;
-        CharacterMovementComp->StopMovementImmediately();
-        CharacterMovementComp->DisableMovement();
-        bMovementPausedForAttack = true;
+        return;
     }
+
+    CurrentTarget = Target;
+    LastAttackTime = GetWorld() ? GetWorld()->GetTimeSeconds() : 0.f;
 
     if (UEnemyAnimInstance* EnemyAnim = EnemyAnimInstance ? EnemyAnimInstance.Get() : (GetMesh() ? Cast<UEnemyAnimInstance>(GetMesh()->GetAnimInstance()) : nullptr))
     {
@@ -212,6 +208,37 @@ void AEnemyBase::DoAttack(AActor* Target)
     }
 
     ResetAttackState();
+}
+
+bool AEnemyBase::TryExecuteAttack(AActor* Target)
+{
+    if (!CanAttack(Target))
+    {
+        return false;
+    }
+
+    DoAttack(Target);
+    return true;
+}
+
+bool AEnemyBase::BeginAttackState()
+{
+    if (bIsDead || bIsAttacking || bIsHitReacting)
+    {
+        return false;
+    }
+
+    bIsAttacking = true;
+
+    if (UCharacterMovementComponent* CharacterMovementComp = GetCharacterMovement())
+    {
+        CachedMovementMode = CharacterMovementComp->MovementMode;
+        CharacterMovementComp->StopMovementImmediately();
+        CharacterMovementComp->DisableMovement();
+        bMovementPausedForAttack = true;
+    }
+
+    return true;
 }
 
 void AEnemyBase::HandleDeath()

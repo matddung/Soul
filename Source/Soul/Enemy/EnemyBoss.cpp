@@ -3,7 +3,6 @@
 #include "../Character/SoulAnimInstance.h"
 #include "../Game/SoulPlayerController.h"
 
-#include "GameFramework/CharacterMovementComponent.h"
 #include "Kismet/GameplayStatics.h"
 #include "Particles/ParticleSystem.h"
 #include "NiagaraFunctionLibrary.h"
@@ -119,16 +118,15 @@ void AEnemyBoss::ExecuteHalfHpSkill()
 
     bHasTriggeredHalfHpSkill = true;
     bHalfHpSkillPending = false;
-    bIsAttacking = true;
-    bIsUsingHalfHpSkill = true;
 
-    if (UCharacterMovementComponent* CharacterMovementComp = GetCharacterMovement())
+    if (!BeginAttackState())
     {
-        CachedMovementMode = CharacterMovementComp->MovementMode;
-        CharacterMovementComp->StopMovementImmediately();
-        CharacterMovementComp->DisableMovement();
-        bMovementPausedForAttack = true;
+        bHasTriggeredHalfHpSkill = false;
+        bHalfHpSkillPending = true;
+        return;
     }
+
+    bIsUsingHalfHpSkill = true;
 
     if (HalfHpSkillMontage)
     {

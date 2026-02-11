@@ -36,6 +36,7 @@ public:
 
     virtual bool CanAttack(AActor* Target) const;
     virtual void DoAttack(AActor* Target);
+    bool TryExecuteAttack(AActor* Target);
 
 protected:
     virtual void BeginPlay() override;
@@ -47,6 +48,8 @@ protected:
     virtual void UpdateHPBar();
     void SpawnFloatingDamage(float Damage);
     void AttackHitCheck();
+
+    bool BeginAttackState();
 
 public:
     UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "AI")
