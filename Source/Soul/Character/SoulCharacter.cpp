@@ -651,6 +651,11 @@ void ASoulCharacter::HandleGunAttack()
 
 void ASoulCharacter::DoGunShot()
 {
+	if (CurrentWeaponType != EWeaponType::Gun || !GetIsAiming())
+	{
+		return;
+	}
+
 	if (!FollowCamera)
 	{
 		return;
@@ -772,6 +777,11 @@ void ASoulCharacter::AttackEndComboState()
 
 void ASoulCharacter::AttackCheck()
 {
+	if (!GetIsAttacking() || CurrentWeaponType != EWeaponType::Sword)
+	{
+		return;
+	}
+
 	FHitResult HitResult;
 	FCollisionQueryParams Params(NAME_None, false, this);
 
@@ -804,7 +814,7 @@ void ASoulCharacter::AttackCheck()
 
 void ASoulCharacter::Dodge(const FInputActionValue& Value)
 {
-	if(IsAnimationBlockingActions())
+	if (IsAnimationBlockingActions())
 	{
 		return;
 	}
@@ -922,6 +932,18 @@ void ASoulCharacter::OnHitDamage(bool bUseKnockback)
 		return;
 	}
 
+	if (AnimInstance && AnimInstance->IsPlayingInteractMontage())
+	{
+		return;
+	}
+
+	if (LocomotionState == ELocomotionState::Ladder || IsOnLadder())
+	{
+		return;
+	}
+
+	const bool bWasAttacking = GetIsAttacking();
+
 	if (GetIsDodging())
 	{
 		if (ActionState == ECharacterActionState::Dodge)
@@ -930,6 +952,12 @@ void ASoulCharacter::OnHitDamage(bool bUseKnockback)
 		}
 		bDodgeInvincible = false;
 		GetCharacterMovement()->bOrientRotationToMovement = true;
+	}
+
+	if (bWasAttacking)
+	{
+		AttackEndComboState();
+		OnAttackEnd.Broadcast();
 	}
 
 	if (AnimInstance)
@@ -1169,7 +1197,7 @@ void ASoulCharacter::BeginLadder(ASoulLadderActor* Ladder)
 	}
 
 	StopAiming();
-
+	
 	if (GetIsSprinting())
 	{
 		TransitionActionState(ECharacterActionState::Idle);
@@ -1408,7 +1436,6 @@ void ASoulCharacter::GiveGunFromBox(bool bAutoEquip)
 	if (bAutoEquip)
 	{
 		StopAiming();
-		
 		if (GetIsSprinting())
 		{
 			TransitionActionState(ECharacterActionState::Idle);

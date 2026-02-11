@@ -80,7 +80,6 @@ void ASoulPlayerController::OnPossess(APawn* InPawn)
     BindInventoryComponent();
     RefreshStatusWidget();
     LoadGameProgress();
-    StartNewGameSaveIfNeeded();
     RefreshHUD();
 }
 
@@ -1357,6 +1356,5 @@ void ASoulPlayerController::StartNewGameSaveIfNeeded()
     }
 
     InitializePlayTimer(0.0f);
-    bManualSaveRequested = true;
     SaveCurrentGame();
 }

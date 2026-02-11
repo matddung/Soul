@@ -268,3 +268,16 @@ void USoulAnimInstance::AnimNotify_LadderTopExitEnd()
 {
 	OnLadderTopExitEnd.Broadcast();
 }
+
+bool USoulAnimInstance::IsPlayingInteractMontage() const
+{
+	if (!IsAnyMontagePlaying())
+	{
+		return false;
+	}
+
+	return Montage_IsPlaying(OpenBoxMontage)
+		|| Montage_IsPlaying(OpenDoorMontage)
+		|| Montage_IsPlaying(LadderTopMountMontage)
+		|| Montage_IsPlaying(LadderTopExitMontage);
+}

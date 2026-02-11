@@ -61,6 +61,8 @@ public:
 	void PlayDeathMontage();
 	void PlayKnockbackMontage();
 
+	bool IsPlayingInteractMontage() const;
+
 protected:
 	UFUNCTION()
 	void AnimNotify_AttackHitCheck();
