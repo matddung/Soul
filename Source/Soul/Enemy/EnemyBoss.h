@@ -36,6 +36,8 @@ protected:
     UFUNCTION()
     void OnSkillMontageEnded(UAnimMontage* Montage, bool bInterrupted);
 
+    void SpawnSkillHitEffect(ACharacter* PlayerCharacter);
+
 protected:
     UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Skill")
     TObjectPtr<UAnimMontage> HalfHpSkillMontage = nullptr;

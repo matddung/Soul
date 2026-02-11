@@ -1,4 +1,5 @@
 #include "BTService_InAttackRange.h"
+#include "../EnemyBase.h"
 
 #include "AIController.h"
 #include "BehaviorTree/BlackboardComponent.h"
@@ -18,8 +19,8 @@ void UBTService_InAttackRange::TickNode(UBehaviorTreeComponent& OwnerComp, uint8
     AAIController* AICon = OwnerComp.GetAIOwner();
     if (!BB || !AICon) return;
 
-    APawn* SelfPawn = AICon->GetPawn();
-    if (!SelfPawn) return;
+    AEnemyBase* Enemy = Cast<AEnemyBase>(AICon->GetPawn());
+    if (!Enemy) return;
 
     AActor* Target = Cast<AActor>(BB->GetValueAsObject(TargetActorKey.SelectedKeyName));
     if (!IsValid(Target))
@@ -36,8 +37,7 @@ void UBTService_InAttackRange::TickNode(UBehaviorTreeComponent& OwnerComp, uint8
         if (FromBB > 0.f) AttackRange = FromBB;
     }
 
-    const float DistSq = FVector::DistSquared(SelfPawn->GetActorLocation(), Target->GetActorLocation());
-    const bool bInRange = DistSq <= FMath::Square(AttackRange);
+    const bool bInRange = Enemy->IsTargetInAttackRange(Target, AttackRange);
 
     BB->SetValueAsBool(InAttackRangeKey.SelectedKeyName, bInRange);
 }

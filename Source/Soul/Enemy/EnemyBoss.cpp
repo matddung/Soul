@@ -168,11 +168,6 @@ void AEnemyBoss::HandleSkillEffect()
 
 void AEnemyBoss::HandleSkillHitCheck()
 {
-    if (!SkillHitNiagara)
-    {
-        return;
-    }
-
     ACharacter* PlayerCharacter = UGameplayStatics::GetPlayerCharacter(this, 0);
     if (!PlayerCharacter)
     {
@@ -189,7 +184,7 @@ void AEnemyBoss::HandleSkillHitCheck()
         return;
     }
 
-    UNiagaraFunctionLibrary::SpawnSystemAttached(SkillHitNiagara, PlayerCharacter->GetMesh(), NAME_None, FVector::ZeroVector, FRotator::ZeroRotator, EAttachLocation::SnapToTarget, true);
+    SpawnSkillHitEffect(PlayerCharacter);
 
     TGuardValue<bool> ApplyingSkillDamageGuard(bIsApplyingSkillDamage, true);
     UGameplayStatics::ApplyDamage(PlayerCharacter, SkillDamage, GetController(), this, nullptr);
@@ -212,4 +207,14 @@ void AEnemyBoss::OnSkillMontageEnded(UAnimMontage* Montage, bool bInterrupted)
     }
 
     ResetSkillState();
+}
+
+void AEnemyBoss::SpawnSkillHitEffect(ACharacter* PlayerCharacter)
+{
+    if (!SkillHitNiagara || !PlayerCharacter)
+    {
+        return;
+    }
+
+    UNiagaraFunctionLibrary::SpawnSystemAttached(SkillHitNiagara, PlayerCharacter->GetMesh(), NAME_None, FVector::ZeroVector, FRotator::ZeroRotator, EAttachLocation::SnapToTarget, true);
 }

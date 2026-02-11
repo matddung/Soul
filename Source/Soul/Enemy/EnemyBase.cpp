@@ -175,11 +175,10 @@ bool AEnemyBase::CanAttack(AActor* Target) const
         return false;
     }
 
-    const float DistanceToTarget = FVector::Dist(GetActorLocation(), Target->GetActorLocation());
     const float CurrentTime = GetWorld() ? GetWorld()->GetTimeSeconds() : 0.f;
     const bool bIsCooldownReady = (CurrentTime - LastAttackTime) >= AttackCooldown;
 
-    return DistanceToTarget <= AttackRange && bIsCooldownReady;
+    return IsTargetInAttackRange(Target) && bIsCooldownReady;
 }
 
 void AEnemyBase::DoAttack(AActor* Target)
@@ -219,6 +218,19 @@ bool AEnemyBase::TryExecuteAttack(AActor* Target)
 
     DoAttack(Target);
     return true;
+}
+
+bool AEnemyBase::IsTargetInAttackRange(AActor* Target, float RangeOverride) const
+{
+    if (Target == nullptr)
+    {
+        return false;
+    }
+
+    const float EffectiveAttackRange = RangeOverride >= 0.f ? RangeOverride : AttackRange;
+    const float DistanceToTarget = FVector::Dist(GetActorLocation(), Target->GetActorLocation());
+
+    return DistanceToTarget <= EffectiveAttackRange;
 }
 
 bool AEnemyBase::BeginAttackState()

@@ -38,6 +38,8 @@ public:
     virtual void DoAttack(AActor* Target);
     bool TryExecuteAttack(AActor* Target);
 
+    bool IsTargetInAttackRange(AActor* Target, float RangeOverride = -1.f) const;
+
 protected:
     virtual void BeginPlay() override;
 
